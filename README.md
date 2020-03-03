@@ -7,3 +7,10 @@
 **[C++ Primer Plus, 6th Edition](https://www.informit.com/store/c-plus-plus-primer-plus-9780321776402)** by Stephen Prata, published Oct 18, 2011 by Addison-Wesley Professional.
 
 **[Essential C++](https://www.informit.com/store/essential-c-plus-plus-9780201485189)** by Stanley B. Lippman, published Oct 26, 1999 by Addison-Wesley Professional.
+
+## <!--Java books-->
+
+<!--**[Java Concurrency in Practice](https://jcip.net/)** by Brian Goetz, published May 19, 2006 by Addison-Wesley Professional.-->
+
+## Data Structures and Algorithm
+**[Data Structures and Algorithm Analysis in Java, 3rd edition](http://users.cis.fiu.edu/~weiss/dsaajava3/code/)** by Mark A. Weiss, published November 18th 2011 by Pearson.
