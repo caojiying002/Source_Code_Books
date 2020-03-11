@@ -10,7 +10,9 @@
 
 **[Essential C++](https://www.informit.com/store/essential-c-plus-plus-9780201485189)** by Stanley B. Lippman, published Oct 26, 1999 by Addison-Wesley Professional.
 
-## <!--Java books-->
+## Java books
+
+**[Core Java, Volumes I and II, 11th Edition](http://horstmann.com/corejava/index.html)** by Cay S. Horstmann, published May 25, 2018 by Prentice Hall.
 
 <!--**[Java Concurrency in Practice](https://jcip.net/)** by Brian Goetz, published May 19, 2006 by Addison-Wesley Professional.-->
 
