@@ -18,6 +18,8 @@
 
 **[Advanced Programming in the UNIX Environment, 3rd Edition](http://www.apuebook.com/)** by W. Richard Stevens and Stephen A. Rago, published May 24, 2013 by Addison-Wesley Professional.
 
+**[The Linux Programming Interface: A Linux and UNIX System Programming Handbook](http://man7.org/tlpi/index.html)** by Michael Kerrisk, published in October, 2010 by No Starch Press.
+
 ## Java
 
 **[Core Java, Volumes I and II, 11th Edition](http://horstmann.com/corejava/index.html)** by Cay S. Horstmann, published May 25, 2018 by Prentice Hall.
