@@ -29,4 +29,6 @@
 ## Data Structures and Algorithm
 <!--**[Algorithms, 4th Edition](https://algs4.cs.princeton.edu)** by Robert Sedgewick and Kevin Wayne, published Mar 24, 2011 by Addison-Wesley Professional.-->
 
-**[Data Structures and Algorithm Analysis in Java, 3rd edition](http://users.cis.fiu.edu/~weiss/dsaajava3/code/)** by Mark A. Weiss, published November 18th 2011 by Pearson.
+**[Data Structures and Algorithm Analysis in C, 2nd edition](http://users.cis.fiu.edu/~weiss/dsaa_c2e/files.html)** by Mark A. Weiss, published September 19, 1996 by Pearson.
+
+**[Data Structures and Algorithm Analysis in Java, 3rd edition](http://users.cis.fiu.edu/~weiss/dsaajava3/code/)** by Mark A. Weiss, published November 28, 2011 by Pearson.
