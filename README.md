@@ -31,4 +31,6 @@
 
 **[Data Structures and Algorithm Analysis in C, 2nd edition](http://users.cis.fiu.edu/~weiss/dsaa_c2e/files.html)** by Mark A. Weiss, published September 19, 1996 by Pearson.
 
+**[Data Structures and Algorithm Analysis in C++, 4th edition](http://users.cis.fiu.edu/~weiss/dsaa_c++4/code/)** by Mark A. Weiss, published June 23, 2013 by Pearson.
+
 **[Data Structures and Algorithm Analysis in Java, 3rd edition](http://users.cis.fiu.edu/~weiss/dsaajava3/code/)** by Mark A. Weiss, published November 28, 2011 by Pearson.
