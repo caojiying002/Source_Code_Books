@@ -1,3 +1,6 @@
 [submodule "effective-java-3e-source-code"]
 	path = effective-java-3e-source-code
 	url = https://github.com/jbloch/effective-java-3e-source-code.git
+[submodule "algs4"]
+	path = algs4
+	url = https://github.com/kevin-wayne/algs4.git
