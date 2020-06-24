@@ -24,7 +24,7 @@
 
 **[Core Java, Volumes I and II, 11th Edition](http://horstmann.com/corejava/index.html)** by Cay S. Horstmann, published May 25, 2018 by Prentice Hall.
 
-<!--**[Java Concurrency in Practice](https://jcip.net/)** by Brian Goetz, published May 19, 2006 by Addison-Wesley Professional.-->
+**[Java Concurrency in Practice](https://jcip.net/)** by Brian Goetz, published May 19, 2006 by Addison-Wesley Professional.
 
 ## Data Structures and Algorithm
 <!--**[Algorithms, 4th Edition](https://algs4.cs.princeton.edu)** by Robert Sedgewick and Kevin Wayne, published Mar 24, 2011 by Addison-Wesley Professional.-->
