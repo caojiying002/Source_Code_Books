@@ -10,3 +10,6 @@
 [submodule "Managing_Projects_with_GNU_Make_3rd_Edition"]
 	path = Managing_Projects_with_GNU_Make_3rd_Edition
 	url = https://resources.oreilly.com/examples/9780596006105.git
+[submodule "pcc_2e"]
+	path = pcc_2e
+	url = https://github.com/ehmatthes/pcc_2e.git
