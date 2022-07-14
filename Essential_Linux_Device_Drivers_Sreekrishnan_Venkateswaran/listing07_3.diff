@@ -1,0 +1,74 @@
++ #include <linux/input.h>
++ #include <linux/interrupt.h>
+
++ /* Device structure */
++ struct {
++     /* ... */
++     struct input_dev dev;
++ } roller_mouse;
+
++ static int __init
++ roller_mouse_init(void)
++ {
++     /* Allocate input device structure */
++     roller_mouse->dev = input_allocate_device();
++
++     /* Can generate a click and a relative movement */
++     roller_mouse->dev->evbit[0] = BIT(EV_KEY) | BIT(EV_REL);
++     /* Can move only in the Y-axis */
++     roller_mouse->dev->relbit[0] = BIT(REL_Y);
++
++     /* My click should be construed as the left button
++        press of a mouse */
++     roller_mouse->dev->keybit[LONG(BTN_MOUSE)] = BIT(BTN_LEFT);
++     roller_mouse->dev->name = "roll";
++
++     /* For entries in /sys/class/input/inputX/id/ */
++     roller_mouse->dev->id.bustype = ROLLER_BUS;
++     roller_mouse->dev->id.vendor = ROLLER_VENDOR;
++     roller_mouse->dev->id.product = ROLLER_PROD;
++     roller_mouse->dev->id.version = ROLLER_VER;
++     /* Register with the input subsystem */
++     input_register_device(roller_mouse->dev);
++ }
+
+/* Global variables */
+- spinlock_t roller_lock = SPIN_LOCK_UNLOCKED;
+- static DECLARE_WAIT_QUEUE_HEAD(roller_poll);
+
+/* The Roller Interrupt Handler */
+static irqreturn_t
+roller_interrupt(int irq, void *dev_id)
+{
+    int i, PA_t, PA_delta_t, movement = 0;
+    /* Get the waveforms from bits 0, 1 and 2
+       of Port D as shown in Figure 7.1 */
+    PA_t = PORTD & 0x07;
+    /* Wait until the state of the pins change.
+       (Add some timeout to the loop) */
+    for (i=0; (PA_t==PA_delta_t); i++){
+        PA_delta_t = PORTD & 0x07;
+    }
+    movement = determine_movement(PA_t, PA_delta_t);
+-   spin_lock(&roller_lock);
+-
+-   /* Store the wheel movement in a buffer for
+-      later access by the read()/poll() entry points */
+-   store_movements(movement);
+-
+-   spin_unlock(&roller_lock);
+-
+-   /* Wake up the poll entry point that might have
+-      gone to sleep, waiting for a wheel movement */
+-   wake_up_interruptible(&roller_poll);
+-
++   if (movement == CLOCKWISE) {
++       input_report_rel(roller_mouse->dev, REL_Y, 1);
++   } else if (movement == ANTICLOCKWISE) {
++       input_report_rel(roller_mouse->dev, REL_Y, -1);
++   } else if (movement == KEYPRESSED) {
++       input_report_key(roller_mouse->dev, BTN_LEFT, 1);
++   }
++   input_sync(roller_mouse->dev);
+    return IRQ_HANDLED;
+}

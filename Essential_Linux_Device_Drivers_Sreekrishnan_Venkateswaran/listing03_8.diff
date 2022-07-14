@@ -1,0 +1,56 @@
+/* '+' and '-' show the differences from Listing 3.7 */
+
+#include <linux/kthread.h>
+
+
+/* Assistant Thread */
+static int
+my_thread(void *unused)
+{
+  DECLARE_WAITQUEUE(wait, current);
+- daemonize("my_thread");
+- while (1) {
++ /* Continue work if no other thread has
++ * invoked kthread_stop() */
++ while (!kthread_should_stop()) {
+/* ... */
+- /* Quit if let go */
+- if (pink_slip) {
+- break;
+- }
+/* ... */
+}
+
+/* Bail out of the wait queue */
+__set_current_state(TASK_RUNNING);
+remove_wait_queue(&my_thread_wait, &wait);
+- complete_and_exit(&my_thread_exit, 0);
++ return 0;
+}
+
+ + struct task_struct *my_task;
+
+/* Module Initialization */
+static int __init
+my_init(void)
+{
+/* ... */
+- kernel_thread(my_thread, NULL,
+- CLONE_FS | CLONE_FILES | CLONE_SIGHAND |
+SIGCHLD);
++ my_task = kthread_create(my_thread, NULL, "%s", "my_thread");
++ if (my_task) wake_up_process(my_task);
+/* ... */
+}
+
+/* Module Release */
+static void __exit
+my_release(void)
+{
+/* ... */
+    - pink_slip = 1;
+- wake_up(&my_thread_wait);
+- wait_for_completion(&my_thread_exit);
++ kthread_stop(my_task);
+/* ... */
+}

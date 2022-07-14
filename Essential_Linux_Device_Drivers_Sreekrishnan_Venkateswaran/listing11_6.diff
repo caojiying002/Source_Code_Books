@@ -1,0 +1,97 @@
+include/scsi/scsi_host.h:
+struct Scsi_Host {
+    /* ... */
+    void *shost_data;
++   char snam[8]; /* /dev node name for this disk */
+    /* ... */
+};
+
+drivers/usb/storage/usb.h:
+struct us_data {
+    /* ... */
++   char magic[4];
+};
+
+include/linux/usb.h:
+struct usb_interface {
+    /* ... */
++   void *private_data;
+};
+
+drivers/usb/storage/usb.c:
+static int storage_probe(struct usb_interface *intf,
+                         const struct usb_device_id *id)
+{
+    /* ... */
+    memset(us, 0, sizeof(struct us_data));
++   intf->private_data = (void *) us;
++   strncpy(us->magic, "disk", 4);
+    mutex_init(&(us->dev_mutex));
+    /* ... */
+}
+
+drivers/scsi/sd.c:
+static int sd_probe(struct device *dev)
+{
+    /* ... */
+    add_disk(gd);
++   memset(sdp->host->snam,0, sizeof(sdp->host->snam));
++   strncpy(sdp->host->snam, gd->disk_name, 3);
+    sdev_printk(KERN_NOTICE, sdp, "Attached scsi %sdisk %s\n",
+                sdp->removable ? "removable " : "", gd->disk_name);
+    /* ... */
+}
+
+drivers/scsi/sr.c:
+static int sr_probe(struct device *dev)
+{
+    /* ... */
+    add_disk(disk);
++   memset(sdev->host->snam,0, sizeof(sdev->host->snam));
++   strncpy(sdev->host->snam, cd->cdi.name, 3);
+    sdev_printk(KERN_DEBUG, sdev, "Attached scsi CD-ROM %s\n",
+                cd->cdi.name);
+    /* ... */
+}
+
+drivers/usb/core/devices.c:
+/* ... */
+#include <asm/uaccess.h>
+
++ #include <scsi/scsi_host.h>
++ #include "../storage/usb.h"
+
+static ssize_t usb_device_dump(char __user **buffer, size_t *nbytes,
+                               loff_t *skip_bytes, loff_t *file_offset,
+                               struct usb_device *usbdev,
+                               struct usb_bus *bus, int level,
+                               int index, int count)
+{
+    /* ... */
+    ssize_t total_written = 0;
++   struct us_data *us_d;
++   struct Scsi_Host *s_h;
+    /* ... */
+    data_end = pages_start + sprintf(pages_start, format_topo,
+                                     bus->busnum, level,
+                                     parent_devnum,
+                                     index, count, usbdev->devnum,
+                                     speed, usbdev->maxchild);
++   /* Assume this device supports only one interface */
++   us_d = (struct us_data *)
++   (usbdev->actconfig->interface[0]->private_data);
++
++   if ((us_d) && (!strncmp(us_d->magic, "disk", 4))) {
++       s_h = (struct Scsi_Host *) container_of((void *)us_d,
++             struct Scsi_Host,
++             hostdata);
++       data_end += sprintf(data_end, "N: ");
++       data_end += sprintf(data_end, "Device=%.100s",s_h->snam);
++       if (!strncmp(s_h->snam, "sr", 2)) {
++           data_end += sprintf(data_end, " (CDROM)\n");
++       } else if (!strncmp(s_h->snam, "sd", 2)) {
++           data_end += sprintf(data_end, " (Disk)\n");
++       }
++   }
+    /* ... */
+}

@@ -1,0 +1,14 @@
+int vfs_readdir(struct file *file, filldir_t filler, void *buf)
+{
+    struct inode *inode = file->f_ dentry->d_inode;
+    int res = -ENOTDIR;
++   /* Introduce a millisecond bottleneck
++      (HZ is set to 1000 on this system) */
++   unsigned long timeout = jiffies+1;
+
++   while (time_before(jiffies, timeout));
++   /* End of bottleneck */
+
+    /* ... */
+    
+}

@@ -20,6 +20,10 @@
 
 **[The Linux Programming Interface: A Linux and UNIX System Programming Handbook](http://man7.org/tlpi/index.html)** by Michael Kerrisk, published in October, 2010 by No Starch Press.
 
+## Linux Kernel/Driver
+
+**[Essential Linux Device Drivers](https://www.elinuxdd.com/)** by Sreekrishnan Venkateswaran, published April 1, 2008 by Prentice Hall.
+
 ## Java
 
 **[Core Java, Volumes I and II, 11th Edition](http://horstmann.com/corejava/index.html)** by Cay S. Horstmann, published May 25, 2018 by Prentice Hall.
