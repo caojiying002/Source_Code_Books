@@ -20,6 +20,8 @@
 
 **[The Linux Programming Interface: A Linux and UNIX System Programming Handbook](http://man7.org/tlpi/index.html)** by Michael Kerrisk, published in October, 2010 by No Starch Press.
 
+**[Beginning Linux Programming, 4th Edition](https://www.wiley.com/en-cn/Beginning+Linux+Programming,+4th+Edition-p-9781118058619)** by Neil Matthew and Richard Stones, published October 19, 2007 by Wrox.
+
 ## Linux Kernel/Driver
 
 **[Essential Linux Device Drivers](https://www.elinuxdd.com/)** by Sreekrishnan Venkateswaran, published April 1, 2008 by Prentice Hall.
