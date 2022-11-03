@@ -13,3 +13,6 @@
 [submodule "pcc_2e"]
 	path = pcc_2e
 	url = https://github.com/ehmatthes/pcc_2e.git
+[submodule "compose-museum_sample-app"]
+	path = compose-museum_sample-app
+	url = https://github.com/compose-museum/sample-app
