@@ -1597,3 +1597,468 @@ for TLPI, available at http://man7.org/tlpi/errata/.
         namespaces/namespaces_of.go
                 Correctly handle kernels that don't support time namespaces.
                 Simplify code that discovers available namespace symlinks.
+
+2020-04-22
+        namespaces/userns_child_exec.c
+                Fix bug in handling of -b (securebits) option.
+                Add support for setting remaining securebits flags.
+                Change option letters used to turn on inheritable and ambient
+                capabilities (-h ==> -i; -a ==> -A).
+        lib/cap_functions.c
+                Add a function to display a securebits mask.
+        caps/show_secbits.c
+                Add a program that display the securebits flags.
+
+2020-04-24
+        namespaces/ns_exec.c
+                Add a '-f' option to do a fork() after setns().
+        namespaces/namespaces_of.go
+                Fix bug introduced on 2020-04-07, which caused the "--pidns"
+                option to cease working.
+
+2020-05-01
+        namespaces/userns_child_exec.c
+                Remove '-z' option (which was just a synonym for '-r').
+                Improve error diagnostics for -S option.
+
+2020-05-07
+        time/t_stime.c
+                Removed this program. stime(2) is a deprecated interface
+                that is no longer supported in recent versions of glibc.
+
+2020-06-29
+        inotify/inotify_dtree.c
+                Reformat some comments.
+
+2020-07-03
+        filelock/i_fcntl_locking.c
+        procexec/execlp.c
+                Minor white space changes in source code layout.
+
+2020-07-17
+        namespaces/ns_exec.c
+                Add a comment explaining use of O_CLOEXEC flag.
+
+2020-09-11
+        timers/t_clock_nanosleep.c
+                Remove unneeded cast to (long) when printing 'request.tv_nsec'.
+
+2020-09-11
+        sockets/scm_multi_recv.c
+                Minor tweak to a variable name.
+        cap/view_cap_xattr.c
+        scm_cred_recv.c
+        sockets/scm_cred_send.c
+        sockets/scm_multi_recv.c
+        sockets/scm_multi_send.c
+        sockets/scm_rights_recv.c
+        sockets/scm_rights_send.c
+                Use better % specifier when printing 'size_t'/'ssize_t'.
+
+2020-09-18
+        cgroups/alloc_mem.c
+                Reorder command-line arguments, allowing 'sleep-usecs' to be
+                optional.
+                Improve "Usage" message.
+        mmap/t_remap_file_pages.c
+                Replace "0" with "NULL" in call to mmap().
+        threads/prod_condvar.c
+        threads/prod_no_condvar.c
+                Use a more expressive function name (threadFunc ==> producer).
+        pmsg/mq_notify_siginfo.c
+        pmsg/mq_notify_via_signal.c
+        pmsg/mq_notify_via_thread.c
+                Use a better printf() specifier for printing 'ssize_t'.
+
+2020-09-30
+        seccomp/seccomp_user_notification.c
+                Quite a bit of a rewrite, including a fix required
+                by a user-space breakage caused by kernel commit
+                2882d53c9c6f3b8311d225062522f03772cf0179.
+
+2020-10-07
+        threads/Makefile
+                Remove 'strerror_test', 'strerror_test_tsd', and
+                'strerror_test_tls' from the targets built by "make all". These
+                targets rely on symbols ('_sys_nerr' and '_sys_errlist') that,
+                since version 2.32, are no longer exported by glibc, and will
+                result in errors if built on systems that have that glibc
+                version or later.
+
+2020-10-10
+        scm_cred_recv.c
+        scm_cred_send.c
+        scm_multi_recv.c
+        scm_multi_send.c
+        scm_rights_recv.c
+        scm_rights_send.c
+                Various minor code tweaks.
+
+2020-10-25
+        seccomp/seccomp_user_notification.c ==> seccomp/seccomp_unotify_mkdir.c
+                Further rewriting, and renaming of this program to something
+                a little less generic.
+
+2020-10-30
+        seccomp/seccomp_unotify_mkdir.c
+                Further rewriting.
+        seccomp/seccomp_functions.c
+        seccomp/seccomp_functions.h
+                A library of functions that are useful for the seccomp
+                examples, initially populated with functions split out
+                of seccomp/seccomp_unotify_mkdir.c.
+
+2020-11-18
+        proc/bad_longjmp.c
+                Simplify the program, since it can no longer be used to
+                demonstrate one of the possible failure modes after a bad
+                longjmp(). (Thanks to Robert Kumanek.)
+
+2020-11-20
+        threads/thread_incr_rwlock.c
+                Use NULL, rather than 0, as second argument in
+                pthread_rwlock_init()
+
+2021-03-12
+        pshm/pshm_read.c
+                Replace a call to printf() with a call to write().
+                See the erratum for page 1113.
+
+2021-03-18
+        inotify/inotify_dtree.c
+                Fix mismatched braces in nested 'if' statements
+
+2021-03-19
+        acl/acl_update.c
+        altio/epoll_flags_fork.c
+        altio/multithread_epoll_wait.c
+        cap/cap_functions.c
+        cap/cap_launcher.c
+        cap/cap_text.c
+        cap/demo_file_caps.c
+        cap/t_cap_get_file.c
+        cap/t_cap_get_pid.c
+        cap/t_cap_set_file.c
+        cap/view_cap_xattr.c
+        cgroups/alloc_mem.c
+        cgroups/fork_bomb.c
+        filebuff/write_bytes.c
+        files/t_utime.c
+        files/t_utimes.c
+        filesys/t_statfs.c
+        filesys/t_statvfs.c
+        inotify/dnotify.c
+        inotify/inotify_dtree.c
+        inotify/rand_dtree.c
+        mmap/t_remap_file_pages.c
+        namespaces/cred_launcher.c
+        namespaces/demo_userns.c
+        namespaces/demo_uts_namespaces.c
+        namespaces/hostname.c
+        namespaces/multi_pidns.c
+        namespaces/ns_capable.c
+        namespaces/ns_child_exec.c
+        namespaces/ns_run.c
+        namespaces/orphan.c
+        namespaces/pidns_init_sleep.c
+        namespaces/show_creds.c
+        namespaces/simple_init.c
+        namespaces/t_setns_userns.c
+        namespaces/unshare.c
+        namespaces/userns_child_exec.c
+        namespaces/userns_functions.c
+        namespaces/userns_setns_test.c
+        pmsg/mq_notify_via_signal.c
+        pmsg/mq_notify_via_thread.c
+        proc/t_getenv.c
+        procpri/t_sched_getaffinity.c
+        procpri/t_sched_setaffinity.c
+        progconc/syscall_speed.c
+        psem/psem_trywait.c
+        seccomp/dump_seccomp_filter.c
+        seccomp/libseccomp_demo.c
+        seccomp/seccomp_arg64.c
+        seccomp/seccomp_launch.c
+        seccomp/seccomp_perf.c
+        seccomp/seccomp_trap_sigsys.c
+        signals/demo_SIGFPE.c
+        signals/sig_speed_sigsuspend.c
+        sockets/list_host_addresses.c
+        sockets/scm_cred.h
+        sockets/scm_cred_recv.c
+        sockets/scm_cred_send.c
+        sockets/scm_functions.c
+        sockets/scm_multi.h
+        sockets/scm_multi_recv.c
+        sockets/scm_multi_send.c
+        sockets/scm_rights.h
+        sockets/scm_rights_recv.c
+        sockets/scm_rights_send.c
+        sockets/t_getservbyname.c
+        svmsg/svmsg_info.c
+        svsem/svsem_create.c
+        svsem/svsem_info.c
+        svsem/svsem_rm.c
+        svshm/svshm_attach.c
+        svshm/svshm_create.c
+        svshm/svshm_info.c
+        svshm/svshm_lock.c
+        svshm/svshm_rm.c
+        svshm/svshm_unlock.c
+        threads/prod_condvar.c
+        threads/prod_no_condvar.c
+        threads/pthread_barrier_demo.c
+        threads/thread_incr_rwlock.c
+        threads/thread_incr_spinlock.c
+        threads/thread_lock_speed.c
+        timers/cpu_burner.c
+        timers/cpu_multi_burner.c
+        timers/cpu_multithread_burner.c
+        users_groups/t_getpwnam_r.c
+        vdso/gettimeofday.c
+        xattr/t_setxattr.c
+                Revise code to take advantage of C99 features (mainly,
+                declare variables anywhere in a block and use 'bool' type).
+                (This change affects code not published in TLPI; changes to
+                the code published in the book will have to wait for now.)
+
+2021-03-19
+        procpri/t_sched_getaffinity.c
+                Use a better type for variable.
+
+2021-03-20
+        altio/select_mq.c
+        daemons/t_syslog.c
+        dirs_links/bad_symlink.c
+        dirs_links/file_type_stats.c
+        fileio/atomic_append.c
+        files/chiflag.c
+        mmap/mmcopy.c
+        pipes/change_case.c
+        pmsg/mq_notify_sigwaitinfo.c
+        proc/setenv.c
+        procexec/execlp.c
+        procpri/demo_sched_fifo.c
+        procres/print_rusage.c
+        procres/rusage_wait.c
+        psem/psem_timedwait.c
+        signals/ignore_pending_sig.c
+        sockets/is_echo_v2_sv.c
+        sockets/is_seqnum_v2_cl.c
+        sockets/is_seqnum_v2_sv.c
+        sockets/read_line_buf.c
+        sockets/sendfile.c
+        sockets/unix_sockets.c
+        sockets/us_xfr_v2_cl.c
+        sockets/us_xfr_v2_sv.c
+        svipc/t_ftok.c
+        svsem/event_flags.c
+        svshm/svshm_mon.c
+        sysinfo/procfs_user_exe.c
+        timers/ptmr_null_evp.c
+        timers/t_clock_nanosleep.c
+        tty/ttyname.c
+        vmem/madvise_dontneed.c
+                Revise code to take advantage of C99 features (mainly,
+                declare variables anywhere in a block and use 'bool' type).
+                (This change affects code not published in TLPI; changes to
+                the code published in the book will have to wait for now.)
+
+2021-03-20
+        acl/acl_update.c
+                Simplify main() by moving some code into a separate function.
+                Replace 4 mutually exclusive booleans with an enum.
+
+2021-03-26
+        altio/select_mq.c
+        namespaces/orphan.c
+        pipes/change_case.c
+        pipes/simple_pipe.c
+        procexec/orphan.c
+        procres/rusage_wait.c
+        sockets/is_echo_v2_sv.c
+                Replace the use of _exit(2) with exit(3). In these example
+                programs, there was no particular reason to terminate the
+                process with _exit() rather than exit(), so use the latter
+                function.
+
+2021-04-23
+        seccomp/seccomp_bench.c
+                Fix an off-by-one error in loop constructing BPF filter.
+
+2021-04-29
+        seccomp/seccomp_user_notification.c
+                A further program to demonstrate the seccomp "notify to
+                user space" feature added in Linux 5.0.
+
+2021-05-06
+        acl/acl_update.c
+                Remove unnecessary double parentheses. (Thanks to
+                Randy MacLeod.)
+
+2021-05-08
+        threads/thread_multijoin.c
+                Add some pragmas to avoid compiler warnings.
+                (Only in "dist" version of code.)
+                (Thanks to Randy MacLeod.)
+        dirs_links/list_files_readdir_r.c
+                Add a pragma to avoid compiler warning about deprecated
+                readdir_r().
+                (Thanks to Randy MacLeod.)
+
+2021-05-12
+        namespaces/userns_setns_test.c
+                Display process capabilities before performing setns().
+
+2021-05-13
+        namespaces/userns_setns_test.c
+                Minor cosmetic fixes (add braces to 'if', remove a redundant
+                comment).
+
+2021-05-15
+        namespaces/namespaces_of.go
+                Sort namespace list.
+
+2021-05-17
+        lib/error_functions.c
+                Declare terminate() using NORETURN. Replace the 
+                '-__attribute__ ((__noreturn__))' macro logic with the
+                equivalent NORETURN macro that is already declared in
+                error_functions.h. See the erratum for page 52.
+                (Thanks to Alex Colomar.)
+
+2021-05-17
+        lib/get_num.c
+                Remove an unneeded cast inside getInt(). See the erratum
+                for page 61.
+                (Thanks to Alex Colomar.)
+
+2021-09-08
+        cap/cap_text.c
+                Add recently added capabilities (CAP_BPF,
+                CAP_CHECKPOINT_RESTORE, CAP_PERFMON).
+
+2021-09-10
+        namespaces/cred_launcher.c
+        namespaces/unshare.c
+                Employ '+' at start of getopt() string, so that command-line
+                options are not permuted.
+
+2021-09-11
+        cgroups/alloc_mem.c
+                Allow second command-line argument to be expressed in hex.
+
+2021-09-17
+        threads/simple_thread.c
+                Remove unnecessary cast.
+                (Thanks to Alex Colomar.)
+
+2021-11-10
+        signals/nonatomic_uint64.c
+        signals/Makefile
+                Add a program to show that fetches and stores of 64-bit
+                integers are not atomic on x86-32.
+
+2021-12-21
+        acl/acl_update.c
+                C99 style fix.
+
+2022-02-11
+        signals/nonatomic_uint64.c
+                Add comment noting requirement to install gcc-multilib on
+                Ubuntu and Debian.
+        BUILDING
+                Note the need to install gcc-multilib on some systems.
+                Fix a typo.
+
+2022-03-01
+        dirs_links/file_type_stats.c
+                Tweak error handling (use my errExit() function in place of
+                perror() + exit()).
+        altio/epoll_flags_fork.c
+                Relocate child logic into a separate function.
+
+2022-03-16
+        signals/Makefile
+                Don't build the 'nonatomic_uint64' target as part of the 'all'
+                target, since that target is intended to be built only on x86
+                platforms.
+
+2022-03-31
+        seccomp/seccomp_deny_syscall.c
+                Add a program that provides a very simple example of the use
+                of seccomp.
+
+2022-04-02
+        seccomp/seccomp_arg64.c
+        seccomp/seccomp_control_open.c
+        seccomp/seccomp_deny_open.c
+        seccomp/seccomp_multiarch.c
+        seccomp/seccomp_trap_sigsys.c
+                Declare 'argv' consistently in main() (use '*argv[]' rather
+                than '**argv').
+
+2022-04-07
+        cgroups/fork_bomb.c
+                Instead of using a 'parent-sleep-time' argument, have the
+                program pause until the user types "Enter".
+
+2022-04-08
+        timers/cpu_burner.c
+        timers/cpu_multi_burner.c
+        timers/cpu_multithread_burner.c
+                Make the output of these programs more readable by removing
+                some nonessential information.
+
+2022-04-09
+        namespaces/make_orphans.c
+                A small test program for PID namespaces. Create orphan
+                process(es) that sleep for a specified interval before
+                terminating.
+
+2022-05-03
+        cap/cap_launcher.c
+                Add a word that was missing from the "usage" message.
+                Add a comment explaining that ambient capabilities have effect
+                only when launching an unprivileged program.
+                Split out the code for setting the supplementary GID into a
+                separate function.
+
+2022-05-04
+         namespaces/userns_child_exec.c
+                Fix bug in handling of -A and -I options; bug was introduced
+                in 2020-04-22 changes.
+
+2022-05-24
+        cap/cap_launcher.c
+                Add a -A option, to prevent raising of ambient capabilities.
+                This can be useful to perform experiments that involve only
+                the use of inheritable capabilities.
+                Refactor some code into individual functions.
+                Remove some unnecessary header file includes.
+
+2022-05-26
+        namespaces/userns_child_exec.c
+                Write more informative messages for usage errors.
+
+2022-06-05
+        procexec/pdeath_signal.c
+                Various changes to improve readability of program output.
+                Reformat strings in "usage" message.
+
+2022-06-07
+        Makefile
+                Add "cgroups" to list of build directories.
+
+2022-06-19
+        inotify/inotify_dtree.c
+                Minor comment and code layout changes.
+
+2022-07-01
+        namespaces/userns_child_exec.c
+                Adjust size of an snprintf() buffer to avoid a format-truncation
+                warning.
+
+2022-07-02
+        svshm/svshm_xfr_writer.c
+                Use NULL rather than 0 as last argument in call to shmctl().

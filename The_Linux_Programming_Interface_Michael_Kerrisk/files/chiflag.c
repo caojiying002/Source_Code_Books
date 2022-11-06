@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -55,17 +55,14 @@ usageError(const char *progName)
 int
 main(int argc, char *argv[])
 {
-    int attr, oldAttr, j, fd;
-    char *p;
-
     if (argc < 3 || strchr("+-=", argv[1][0]) == NULL ||
             strcmp(argv[1], "--help") == 0)
         usageError(argv[0]);
 
     /* Build bit mask based on attribute string in argv[1] */
 
-    attr = 0;
-    for (p = &argv[1][1]; *p != '\0'; p++) {
+    int attr = 0;
+    for (char *p = &argv[1][1]; *p != '\0'; p++) {
         switch (*p) {
         case 'a': attr |= FS_APPEND_FL;         break;
         case 'A': attr |= FS_NOATIME_FL;        break;
@@ -85,8 +82,8 @@ main(int argc, char *argv[])
 
     /* Open each filename in turn, and change its attributes */
 
-    for (j = 2; j < argc; j++) {
-        fd = open(argv[j], O_RDONLY);
+    for (int j = 2; j < argc; j++) {
+        int fd = open(argv[j], O_RDONLY);
         if (fd == -1) {         /* Most likely error is nonexistent file */
             errMsg("open: %s", argv[j]);
             continue;
@@ -96,6 +93,7 @@ main(int argc, char *argv[])
            attribute bit mask and modify as required */
 
         if (argv[1][0] == '+' || argv[1][0] == '-') {
+            int oldAttr;
             if (ioctl(fd, FS_IOC_GETFLAGS, &oldAttr) == -1)
                 errExit("ioctl1: %s", argv[j]);
             attr = (*argv[1] == '-') ? (oldAttr & ~attr) : (oldAttr | attr);

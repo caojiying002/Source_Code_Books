@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -25,6 +25,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 extern char **environ;
 
@@ -37,10 +38,9 @@ static void
 execShScript(int argc, char *argv[], char *envp[])
 {
     char *shArgv[argc + 1];
-    int j;
 
     shArgv[0] = SHELL_PATH;
-    for (j = 0; j <= argc; j++)
+    for (int j = 0; j <= argc; j++)
         shArgv[j + 1] = argv[j];
     execve(SHELL_PATH, shArgv, envp);
 
@@ -51,36 +51,20 @@ execShScript(int argc, char *argv[], char *envp[])
 int
 execlp(const char *filename, const char *arg, ...)
 {
-    char **argv;                /* Argument vector for new program */
-    int argc;                   /* Number of items used in argv */
-    int argvSize;               /* Currently allocated size of argv */
-    va_list argList;            /* For variable argument list parsing */
-    char **envp;                /* Environment for new program */
-    char *PATH;                 /* Value of PATH environment variable */
-    char *pathname;             /* Path prefix + '/' + filename */
-    char *prStart, *prEnd;      /* Start and end of prefix currently
-                                   being processed from PATH */
-    int savedErrno;
-    int morePrefixes;           /* True if there are more prefixes in PATH */
-    char *p;
-    int j;
-    int fndEACCES;              /* True if any execve() returned EACCES */
+    /***** Build argument vector from variable-length argument list *****/
 
-    fndEACCES = 0;
-
-    /***** Build argument vector from variable length argument list *****/
-
-    argvSize = 100;
-    argv = calloc(argvSize, sizeof(void *));
+    int argvSize = 100;         /* Currently allocated size of argv */
+    char **argv = calloc(argvSize, sizeof(void *));
     if (argv == NULL)
         return -1;
 
     argv[0] = (char *) arg;
-    argc = 1;
+    int argc = 1;
 
     /* Walk through variable-length argument list until NULL terminator
        is found, building argv as we go */
 
+    va_list argList;            /* For variable argument list parsing */
     va_start(argList, arg);
     while (argv[argc - 1] != NULL) {
         if (argc + 1 >= argvSize) {     /* Resize argv if required */
@@ -104,9 +88,11 @@ execlp(const char *filename, const char *arg, ...)
 
     /***** Use caller's environment to create envp vector *****/
 
+    int j;
+
     for (j = 0; environ[j] != NULL; )   /* Calculate size of environ */
         j++;
-    envp = calloc(sizeof(void *), j + 1);
+    char **envp = calloc(sizeof(void *), j + 1);
     if (envp == NULL) {
         free(argv);
         return -1;
@@ -118,12 +104,15 @@ execlp(const char *filename, const char *arg, ...)
 
     /***** Now try to exec filename *****/
 
+    int fndEACCES = false;      /* True if any execve() returned EACCES */
+    int savedErrno;
+
     if (strchr(filename, '/') != NULL) {
 
          /* If file contains a slash, it's a pathname and we don't do
             a search using PATH */
 
-        pathname = strdup(filename);
+        char *pathname = strdup(filename);
 
         execve(pathname, argv, envp);
 
@@ -137,15 +126,17 @@ execlp(const char *filename, const char *arg, ...)
 
         /* Treat undefined PATH as "." */
 
-        p = getenv("PATH");
-        PATH = (p == NULL || strlen(p) == 0) ? strdup(".") : strdup(p);
+        char *p = getenv("PATH");
+        char *PATH = (p == NULL || strlen(p) == 0) ? strdup(".") : strdup(p);
 
         /* For each prefix in PATH, try to exec 'filename' in that
            directory. The loop will terminate either when we successfully
            exec or when we run out of path prefixes. */
 
+        char *prStart, *prEnd;  /* Start and end of prefix currently
+                                   being processed from PATH */
         prStart = PATH;
-        morePrefixes = 1;
+        bool morePrefixes = true;  /* True if there are more prefixes in PATH */
 
         while (morePrefixes) {
 
@@ -157,8 +148,8 @@ execlp(const char *filename, const char *arg, ...)
 
             /* Build complete pathname from path prefix and filename */
 
-            pathname = malloc(max(1, prEnd - prStart) + strlen(filename)
-                                + 2);
+            char *pathname;             /* Path prefix + '/' + filename */
+            pathname = malloc(max(1, prEnd - prStart) + strlen(filename) + 2);
             pathname[0] = '\0';
             if (prEnd == prStart)       /* Last prefix */
                 strcat(pathname, ".");
@@ -168,7 +159,7 @@ execlp(const char *filename, const char *arg, ...)
             strcat(pathname, filename);
 
             if (*prEnd == '\0')         /* No more prefixes */
-                morePrefixes = 0;
+                morePrefixes = false;
             else
                 prStart = prEnd + 1;    /* Move to start of next prefix */
 
@@ -177,7 +168,7 @@ execlp(const char *filename, const char *arg, ...)
             execve(pathname, argv, envp);
             savedErrno = errno;         /* So we can return correct errno */
             if (errno == EACCES)
-                fndEACCES = 1;
+                fndEACCES = true;
             else if (errno == ENOEXEC)
                 execShScript(argc, argv, envp);
 
@@ -193,7 +184,7 @@ execlp(const char *filename, const char *arg, ...)
        that errno contains the value returned by (the last) execve() */
 
     free(argv);
-    for (j = 0; envp[j] != NULL; j++)
+    for (int j = 0; envp[j] != NULL; j++)
         free(envp[j]);
     free(envp);
 

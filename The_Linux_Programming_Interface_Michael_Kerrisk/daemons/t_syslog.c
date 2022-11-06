@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -32,10 +32,9 @@ usageError(const char *progName)
 int
 main(int argc, char *argv[])
 {
-    int level, options, opt;
-
-    options = 0;
-    level = LOG_INFO;
+    int options = 0;
+    int level = LOG_INFO;
+    int opt;
 
     while ((opt = getopt(argc, argv, "l:pe")) != -1) {
         switch (opt) {

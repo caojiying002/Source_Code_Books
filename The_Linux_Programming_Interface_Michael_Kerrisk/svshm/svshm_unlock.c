@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -24,9 +24,7 @@
 int
 main(int argc, char *argv[])
 {
-    int j;
-
-    for (j = 1; j < argc; j++)
+    for (int j = 1; j < argc; j++)
         if (shmctl(getInt(argv[j], 0, "shmid"), SHM_UNLOCK, NULL) == -1)
             errExit("shmctl");
 

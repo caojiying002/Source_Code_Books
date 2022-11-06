@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -99,8 +99,14 @@ printAllCaps(cap_t capSets, int flags)
     printCap(capSets, CAP_AUDIT_READ, "CAP_AUDIT_READ", flags);
 #endif
     printCap(capSets, CAP_AUDIT_WRITE, "CAP_AUDIT_WRITE", flags);
+#ifdef CAP_BPF          /* Since Linux 5.8 */
+    printCap(capSets, CAP_BPF, "CAP_BPF", flags);
+#endif
 #ifdef CAP_BLOCK_SUSPEND        /* Since Linux 3.5 */
     printCap(capSets, CAP_BLOCK_SUSPEND, "CAP_BLOCK_SUSPEND", flags);
+#endif
+#ifdef CAP_CHECKPOINT_RESTORE   /* Since Linux 5.9 */
+    printCap(capSets, CAP_CHECKPOINT_RESTORE, "CAP_CHECKPOINT_RESTORE", flags);
 #endif
     printCap(capSets, CAP_CHOWN, "CAP_CHOWN", flags);
     printCap(capSets, CAP_DAC_OVERRIDE, "CAP_DAC_OVERRIDE", flags);
@@ -123,6 +129,9 @@ printAllCaps(cap_t capSets, int flags)
     printCap(capSets, CAP_NET_BIND_SERVICE, "CAP_NET_BIND_SERVICE", flags);
     printCap(capSets, CAP_NET_BROADCAST, "CAP_NET_BROADCAST", flags);
     printCap(capSets, CAP_NET_RAW, "CAP_NET_RAW", flags);
+#ifdef CAP_PERFMON              /* Since Linux 5.8 */
+    printCap(capSets, CAP_PERFMON, "CAP_PERFMON", flags);
+#endif
     printCap(capSets, CAP_SETGID, "CAP_SETGID", flags);
     printCap(capSets, CAP_SETFCAP, "CAP_SETFCAP", flags);
     printCap(capSets, CAP_SETPCAP, "CAP_SETPCAP", flags);
@@ -149,19 +158,16 @@ printAllCaps(cap_t capSets, int flags)
 int
 main(int argc, char *argv[])
 {
-    cap_t capSets;
-    char *textCaps;
-
     if (argc != 2) {
         fprintf(stderr, "%s <textual-cap-set>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
-    capSets = cap_from_text(argv[1]);
+    cap_t capSets = cap_from_text(argv[1]);
     if (capSets == NULL)
         errExit("cap_from_text");
 
-    textCaps = cap_to_text(capSets, NULL);
+    char *textCaps = cap_to_text(capSets, NULL);
     if (textCaps == NULL)
         errExit("cap_to_text");
 

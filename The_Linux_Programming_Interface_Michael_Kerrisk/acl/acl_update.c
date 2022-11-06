@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -21,6 +21,7 @@
    on your system.
 */
 #include <sys/acl.h>
+#include <stdbool.h>
 #include "ugid_functions.h"
 #include "tlpi_hdr.h"
 
@@ -32,8 +33,13 @@ struct AccessControlEntry {     /* Represent a single ACL entry */
     int         perms;          /* Permissions bit mask */
 };
 
+enum Operation {
+    unspecifiedOp, modifyEntries, removeEntries, removeDefaultACL,
+    checkValidACL
+};
+
 static void
-usageError(char *progName, char *msg, Boolean shortUsage)
+usageError(char *progName, char *msg, bool shortUsage)
 {
     if (msg != NULL)
         fprintf(stderr, "%s\n", msg);
@@ -74,37 +80,33 @@ usageError(char *progName, char *msg, Boolean shortUsage)
    permission specifications (i.e., a colon followed by at least
    one of [-rwx], otherwise they must not.
 
-   Return TRUE if the specification parsed okay, or FALSE otherwise. */
+   Return true if the specification parsed okay, or false otherwise. */
 
-static Boolean
+static bool
 parseEntrySpec(char *entryStr, struct AccessControlEntry *ace,
-               Boolean permsReqd)
+               bool permsReqd)
 {
-    char *colon1, *colon2;
-    Boolean hasQual;            /* Is optional qualifier present? */
-    Boolean hasPerms;           /* Are permissions specified? */
-
-    colon1 = strchr(entryStr, ':');
+    char *colon1 = strchr(entryStr, ':');
     if (colon1 == NULL) {
         fprintf(stderr, "Missing initial colon in ACL entry: %s\n", entryStr);
-        return FALSE;
+        return false;
     }
 
-    hasQual = *(colon1 + 1) != '\0' && *(colon1 + 1) != ':';
+    bool hasQual = *(colon1 + 1) != '\0' && *(colon1 + 1) != ':';
 
     *colon1 = '\0';     /* Add terminator to tag type */
 
-    colon2 = strchr(colon1 + 1, ':');
-    hasPerms = colon2 != NULL && *(colon2 + 1) != '\0';
+    char *colon2 = strchr(colon1 + 1, ':');
+    bool hasPerms = colon2 != NULL && *(colon2 + 1) != '\0';
 
     if (hasPerms && !permsReqd) {
         fprintf(stderr, "Cannot specify permissions here\n");
-        return FALSE;
+        return false;
     }
 
     if (!hasPerms && permsReqd) {
         fprintf(stderr, "Must specify permissions\n");
-        return FALSE;
+        return false;
     }
 
     /* Determine tag type, depending on tag string and presence
@@ -120,7 +122,7 @@ parseEntrySpec(char *entryStr, struct AccessControlEntry *ace,
         ace->tag = ACL_MASK;
     else {
         fprintf(stderr, "Bad tag: %s\n", entryStr);
-        return FALSE;
+        return false;
     }
 
     /* For ACL_USER and ACL_GROUP tags, extract a UID / GID from qualifier */
@@ -134,28 +136,26 @@ parseEntrySpec(char *entryStr, struct AccessControlEntry *ace,
         ace->qual = userIdFromName(colon1 + 1);
         if (ace->qual == -1) {
             fprintf(stderr, "Bad user ID: %s\n", colon1 + 1);
-            return FALSE;
+            return false;
         }
     } else if (ace->tag == ACL_GROUP) {
         ace->qual = groupIdFromName(colon1 + 1);
         if (ace->qual == -1) {
             fprintf(stderr, "Bad group ID: %s\n", colon1 + 1);
-            return FALSE;
+            return false;
         }
     }
 
     /* If a permissions string was present, return it as a bit mask */
 
     if (hasPerms) {
-        char *p;
-
         ace->perms = 0;
 
         /* We're not too thorough here -- we don't check for multiple
            instances of [-rwx], or check if the permissions string is
            longer than three characters... */
 
-        for (p = colon2 + 1; *p != '\0'; p++) {
+        for (char *p = colon2 + 1; *p != '\0'; p++) {
             if (*p == 'r')
                 ace->perms |= ACL_READ;
             else if (*p == 'w')
@@ -165,12 +165,12 @@ parseEntrySpec(char *entryStr, struct AccessControlEntry *ace,
             else if (*p != '-') {
                 fprintf(stderr, "Bad character in permissions "
                         "string: %c\n", *p);
-                return FALSE;
+                return false;
             }
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 /* Parse a text form ACL, returning information about the entries in
@@ -179,13 +179,12 @@ parseEntrySpec(char *entryStr, struct AccessControlEntry *ace,
 
 static int
 parseACL(char *aclStr, struct AccessControlEntry aclist[],
-        Boolean permsReqd)
+        bool permsReqd)
 {
-    char *nextEntry, *comma;
-    int n;
+    char *comma;
+    int n = 0;
 
-    n = 0;
-    for (nextEntry = aclStr; ; nextEntry = comma + 1) {
+    for (char *nextEntry = aclStr; ; nextEntry = comma + 1) {
 
         if (n >= MAX_ENTRIES) {
             fprintf(stderr, "Too many entries in ACL\n");
@@ -217,12 +216,9 @@ findEntry(acl_t acl, acl_tag_t tag, id_t qaul)
 {
     acl_entry_t entry;
     acl_tag_t entryTag;
-    uid_t *uidp;
-    gid_t *gidp;
-    int ent, s;
 
-    for (ent = ACL_FIRST_ENTRY; ; ent = ACL_NEXT_ENTRY) {
-        s = acl_get_entry(acl, ent, &entry);
+    for (int ent = ACL_FIRST_ENTRY; ; ent = ACL_NEXT_ENTRY) {
+        int s = acl_get_entry(acl, ent, &entry);
         if (s == -1)
             errExit("acl_get_entry");
 
@@ -234,7 +230,7 @@ findEntry(acl_t acl, acl_tag_t tag, id_t qaul)
 
         if (tag == entryTag) {
             if (tag == ACL_USER) {
-                uidp = acl_get_qualifier(entry);
+                uid_t *uidp = acl_get_qualifier(entry);
                 if (uidp == NULL)
                     errExit("acl_get_qualifier");
 
@@ -248,7 +244,7 @@ findEntry(acl_t acl, acl_tag_t tag, id_t qaul)
                 }
 
             } else if (tag == ACL_GROUP) {
-                gidp = acl_get_qualifier(entry);
+                gid_t *gidp = acl_get_qualifier(entry);
                 if (gidp == NULL)
                     errExit("acl_get_qualifier");
 
@@ -295,78 +291,131 @@ setPerms(acl_entry_t entry, int perms)
         errExit("acl_set_permset");
 }
 
+/* Modify or remove entries in the default or in the access ACL of 'file. */
+
+static void
+updateACL(char *file, bool useDefaultACL,
+          int numEntries, struct AccessControlEntry *aclist,
+          enum Operation operation, bool recalcMask)
+{
+    acl_type_t type = useDefaultACL ? ACL_TYPE_DEFAULT : ACL_TYPE_ACCESS;
+
+    acl_t acl = acl_get_file(file, type);
+    if (acl == NULL)
+        errExit("acl_get_file");
+
+    /* Apply each of the entries in 'aclist' to the current file */
+
+    for (int en = 0; en < numEntries; en++) {
+        acl_entry_t entry = findEntry(acl, aclist[en].tag, aclist[en].qual);
+
+        if (operation == removeEntries) {
+            if (entry != NULL)
+                if (acl_delete_entry(acl, entry) == -1)
+                    errExit("acl_delete_entry");
+
+        } else {        /* modifyEntries */
+
+            if (entry == NULL) {
+
+                /* Entry didn't exist in ACL -- create a new
+                   entry with required tag and qualifier */
+
+                if (acl_create_entry(&acl, &entry) == -1)
+                    errExit("acl_create_entry");
+                if (acl_set_tag_type(entry, aclist[en].tag) == -1)
+                    errExit("acl_set_tag_type");
+                if (aclist[en].tag == ACL_USER || aclist[en].tag == ACL_GROUP)
+                    if (acl_set_qualifier(entry, &aclist[en].qual) == -1)
+                        errExit("acl_set_qualifier");
+            }
+
+            setPerms(entry, aclist[en].perms);
+        }
+
+        /* Recalculate the mask entry if requested */
+
+        if (recalcMask)
+            if (acl_calc_mask(&acl) == -1)
+                errExit("acl_calc_mask");
+
+        /* Update the file ACL */
+
+        if (acl_valid(acl) == -1)
+            errExit("acl_valid");
+
+        if (acl_set_file(file, type, acl) == -1)
+            errExit("acl_set_file");
+    }
+
+    if (acl_free(acl) == -1)
+        errExit("acl_free");
+}
+
 int
 main(int argc, char *argv[])
 {
-    Boolean recalcMask, useDefaultACL;
-    Boolean modifyACL, removeACL, removeDefaultACL, checkValidity;
-    int optCnt, j, opt, numEntries, en;
-    acl_type_t type;
-    char *aclSpec;
-    acl_t acl;
-    acl_entry_t entry;
-    struct AccessControlEntry aclist[MAX_ENTRIES];
-
     if (argc < 2 || strcmp(argv[1], "--help") == 0)
-        usageError(argv[0], NULL, FALSE);
+        usageError(argv[0], NULL, false);
 
     /* Parse command-line options */
 
-    recalcMask = TRUE;
-    useDefaultACL = FALSE;
-    modifyACL = FALSE;
-    removeACL = FALSE;
-    checkValidity = FALSE;
-    removeDefaultACL = FALSE;
-    optCnt = 0;
+    enum Operation operation = unspecifiedOp;
+    bool recalcMask = true;
+    bool useDefaultACL = false;
+    int optCnt = 0;
+    char *aclSpec = NULL;
+    int opt;
 
     while ((opt = getopt(argc, argv, "m:x:kdnV:")) != -1) {
         switch (opt) {
         case 'm':
-            modifyACL = TRUE;
+            operation = modifyEntries;
             aclSpec = optarg;
             optCnt++;
             break;
 
         case 'x':
-            removeACL = TRUE;
+            operation = removeEntries;
             aclSpec = optarg;
             optCnt++;
             break;
 
         case 'k':
-            removeDefaultACL = TRUE;
+            operation = removeDefaultACL;
             optCnt++;
             break;
 
         case 'V':
-            checkValidity = TRUE;
+            operation = checkValidACL;
             aclSpec = optarg;
             optCnt++;
             break;
 
         case 'd':
-            useDefaultACL = TRUE;
+            useDefaultACL = true;
             break;
 
         case 'n':
-            recalcMask = FALSE;
+            recalcMask = false;
             break;
 
         default:
-            usageError(argv[0], "Bad option\n", TRUE);
+            usageError(argv[0], "Bad option\n", true);
             break;
         }
     }
 
     if (optCnt != 1)
-        usageError(argv[0], "Specify exactly one of -m, -x, -k, or -V\n", TRUE);
+        usageError(argv[0], "Specify exactly one of -m, -x, -k, or -V\n", true);
 
-    if (checkValidity && useDefaultACL)
-        usageError(argv[0], "Can't specify -d with -V\n", TRUE);
+    if ((operation == checkValidACL) && useDefaultACL)
+        usageError(argv[0], "Can't specify -d with -V\n", true);
 
-    if (checkValidity) {
-        if (parseACL(aclSpec, aclist, TRUE) == -1) {
+    struct AccessControlEntry aclist[MAX_ENTRIES];
+
+    if (operation == checkValidACL) {
+        if (parseACL(aclSpec, aclist, true) == -1) {
             fatal("Bad ACL entry specification");
         } else {
             printf("ACL is valid\n");
@@ -374,76 +423,24 @@ main(int argc, char *argv[])
         }
     }
 
-    if (modifyACL || removeACL) {
-        numEntries = parseACL(aclSpec, aclist, modifyACL);
+    int numEntries = 0;
+    if (operation == modifyEntries || operation == removeEntries) {
+        numEntries = parseACL(aclSpec, aclist, operation == modifyEntries);
         if (numEntries == -1)
-            usageError(argv[0], "Bad ACL specification\n", TRUE);
+            usageError(argv[0], "Bad ACL specification\n", true);
     }
-
-    type = useDefaultACL ? ACL_TYPE_DEFAULT : ACL_TYPE_ACCESS;
 
     /* Perform the operation on each file argument */
 
-    for (j = optind; j < argc; j++) {
-        if (removeDefaultACL) {
+    for (int j = optind; j < argc; j++) {
+        if (operation == removeDefaultACL) {
             if (acl_delete_def_file(argv[j]) == -1)
                 errExit("acl_delete_def_file: %s", argv[j]);
 
-        } else if (modifyACL || removeACL) {
+        } else if (operation == modifyEntries || operation == removeEntries) {
+            updateACL(argv[j], useDefaultACL, numEntries, aclist,
+                      operation, recalcMask);
 
-            acl = acl_get_file(argv[j], type);
-            if (acl == NULL)
-                errExit("acl_get_file");
-
-            /* Apply each of the entries in 'aclist' to the
-               current file */
-
-            for (en = 0; en < numEntries; en++) {
-                entry = findEntry(acl, aclist[en].tag, aclist[en].qual);
-
-                if (removeACL) {
-                    if (entry != NULL)
-                        if (acl_delete_entry(acl, entry) == -1)
-                            errExit("acl_delete_entry");
-
-                } else {        /* modifyACL */
-
-                    if (entry == NULL) {
-
-                        /* Entry didn't exist in ACL -- create a new
-                           entry with required tag and qualifier */
-
-                        if (acl_create_entry(&acl, &entry) == -1)
-                            errExit("acl_create_entry");
-                        if (acl_set_tag_type(entry, aclist[en].tag) == -1)
-                            errExit("acl_set_tag_type");
-                        if (aclist[en].tag == ACL_USER ||
-                                aclist[en].tag == ACL_GROUP)
-                            if (acl_set_qualifier(entry,
-                                        &aclist[en].qual) == -1)
-                                errExit("acl_set_qualifier");
-                    }
-
-                    setPerms(entry, aclist[en].perms);
-                }
-
-                /* Recalculate the mask entry if requested */
-
-                if (recalcMask)
-                    if (acl_calc_mask(&acl) == -1)
-                        errExit("acl_calc_mask");
-
-                /* Update the file ACL */
-
-                if (acl_valid(acl) == -1)
-                    errExit("acl_valid");
-
-                if (acl_set_file(argv[j], type, acl) == -1)
-                    errExit("acl_set_file");
-            }
-
-            if (acl_free(acl) == -1)
-                errExit("acl_free");
         } else {
             fatal("Bad logic!");
         }

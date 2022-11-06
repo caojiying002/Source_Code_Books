@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -33,16 +33,14 @@
 static void
 useCPU(char *msg)
 {
-    struct tms tms;
-    int cpuCentisecs, prevStep, prevSec;
-
-    prevStep = 0;
-    prevSec = 0;
+    int prevStep = 0;
+    int prevSec = 0;
     for (;;) {
+        struct tms tms;
         if (times(&tms) == -1)
             errExit("times");
-        cpuCentisecs = (tms.tms_utime + tms.tms_stime) * 100 /
-                        sysconf(_SC_CLK_TCK);
+        int cpuCentisecs = (tms.tms_utime + tms.tms_stime) * 100 /
+                           sysconf(_SC_CLK_TCK);
 
         if (cpuCentisecs >= prevStep + CSEC_STEP) {
             prevStep += CSEC_STEP;
@@ -63,15 +61,12 @@ useCPU(char *msg)
 int
 main(int argc, char *argv[])
 {
-    struct rlimit rlim;
-    struct sched_param sp;
-    cpu_set_t set;
-
     setbuf(stdout, NULL);               /* Disable buffering of stdout */
 
     /* Confine all processes to a single CPU, so that the processes
        won't run in parallel on multi-CPU systems. */
 
+    cpu_set_t set;
     CPU_ZERO(&set);
     CPU_SET(1, &set);
 
@@ -86,12 +81,14 @@ main(int argc, char *argv[])
        An alternative technique would be to make an alarm() call in each
        process (since interval timers are not inherited across fork()). */
 
+    struct rlimit rlim;
     rlim.rlim_cur = rlim.rlim_max = 50;
     if (setrlimit(RLIMIT_CPU, &rlim) == -1)
         errExit("setrlimit");
 
     /* Run the two processes in the lowest SCHED_FIFO priority */
 
+    struct sched_param sp;
     sp.sched_priority = sched_get_priority_min(SCHED_FIFO);
     if (sp.sched_priority == -1)
         errExit("sched_get_priority_min");

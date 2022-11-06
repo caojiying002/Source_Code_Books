@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 /* Helper function for ttyname(). We do most of the real work here.
    Look in 'devDir' for the terminal device name corresponding to the
@@ -32,14 +33,9 @@
 static char *
 ttynameCheckDir(const struct stat *fdStat, const char *devDir)
 {
-    DIR *dirh;
-    struct dirent *dent;
     static char *ttyPath;               /* Currently checked entry; also used
                                            to return tty name, if found */
     static int ttyLen = 0;              /* Length of ttyPath */
-    struct stat devStat;                /* stat entry for ttyPath */
-    int found;                          /* True if we find device entry */
-    int requiredLen;
 
     if (ttyLen == 0) {                  /* First call - allocate ttyPath */
         ttyPath = malloc(50);
@@ -48,7 +44,7 @@ ttynameCheckDir(const struct stat *fdStat, const char *devDir)
         ttyLen = 50;
     }
 
-    dirh = opendir(devDir);
+    DIR *dirh = opendir(devDir);
     if (dirh == NULL)
         return NULL;
 
@@ -65,9 +61,10 @@ ttynameCheckDir(const struct stat *fdStat, const char *devDir)
        matching device, glibc's ttyname() performs a second pass
        without the st_ino check (i.e., like we do below). */
 
-    found = 0;
+    bool found = false;         /* True if we find device entry */
+    struct dirent *dent;
     while ((dent = readdir(dirh)) != NULL) {
-        requiredLen = strlen(devDir) + 1 + strlen(dent->d_name) + 1;
+        int requiredLen = strlen(devDir) + 1 + strlen(dent->d_name) + 1;
 
         if (requiredLen > ttyLen) {     /* Resize ttyPath if required */
             char *nttyPath;
@@ -82,12 +79,13 @@ ttynameCheckDir(const struct stat *fdStat, const char *devDir)
 
         snprintf(ttyPath, ttyLen, "%s/%s", devDir, dent->d_name);
 
+        struct stat devStat;
         if (stat(ttyPath, &devStat) == -1)
             continue;                   /* Ignore unstat-able entries */
 
         if (S_ISCHR(devStat.st_mode) &&
                 fdStat->st_rdev == devStat.st_rdev) {
-            found = 1;
+            found = true;
             break;
         }
     }
@@ -104,12 +102,10 @@ ttynameCheckDir(const struct stat *fdStat, const char *devDir)
 char *
 ttyname(int fd)
 {
-    char *d;
-    struct stat fdStat;                 /* stat entry for fd */
-
     if (!isatty(fd))                    /* Is fd even a terminal? */
         return NULL;
 
+    struct stat fdStat;                 /* stat entry for fd */
     if (fstat(fd, &fdStat) == -1)
         return NULL;
 
@@ -122,6 +118,6 @@ ttyname(int fd)
        /dev/pts is small, and will contain the required device if
        fd refers to an X-terminal or similar.)  */
 
-    d = ttynameCheckDir(&fdStat, "/dev/pts");
+    char *d = ttynameCheckDir(&fdStat, "/dev/pts");
     return (d != NULL) ? d : ttynameCheckDir(&fdStat, "/dev");
 }

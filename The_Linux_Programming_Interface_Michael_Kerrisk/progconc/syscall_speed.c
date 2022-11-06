@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -31,9 +31,8 @@ static int myfunc() { return 1; }
 int
 main(int argc, char *argv[])
 {
-    int numCalls, j;
-
-    numCalls = (argc > 1) ? getInt(argv[1], GN_GT_0, "num-calls") : 10000000;
+    int numCalls = (argc > 1) ? getInt(argv[1], GN_GT_0, "num-calls")
+                              : 10000000;
 
 #ifdef NOSYSCALL
         printf("Calling normal function\n");
@@ -41,7 +40,7 @@ main(int argc, char *argv[])
         printf("Calling getppid()\n");
 #endif
 
-    for (j = 0; j < numCalls; j++)
+    for (int j = 0; j < numCalls; j++)
 #ifdef NOSYSCALL
         myfunc();
 #else

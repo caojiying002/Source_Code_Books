@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -26,18 +26,16 @@
 int
 main(int argc, char *argv[])
 {
-    key_t key;
-    struct stat sb;
-
     if (argc != 3 || strcmp(argv[1], "--help") == 0)
         usageErr("%s file-name keychar\n", argv[0]);
 
     printf("Size of key_t = %ld bytes\n", (long) sizeof(key_t));
 
+    struct stat sb;
     if (stat(argv[1], &sb) == -1)
         errExit("stat");
 
-    key = ftok(argv[1], argv[2][0]);
+    key_t key = ftok(argv[1], argv[2][0]);
     if (key == -1)
         errExit("ftok");
 

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -49,15 +49,13 @@ threadFunc(void *arg)
 int
 main(int argc, char *argv[])
 {
-    pthread_t t1, t2;
-    int loops, s;
+    int loops = (argc > 1) ? getInt(argv[1], GN_GT_0, "num-loops") : 10000000;
 
-    loops = (argc > 1) ? getInt(argv[1], GN_GT_0, "num-loops") : 10000000;
-
-    s = pthread_rwlock_init(&rwlock, 0);
+    int s = pthread_rwlock_init(&rwlock, NULL);
     if (s != 0)
         errExitEN(s, "pthread_rwlock_init");
 
+    pthread_t t1, t2;
     s = pthread_create(&t1, NULL, threadFunc, &loops);
     if (s != 0)
         errExitEN(s, "pthread_create");

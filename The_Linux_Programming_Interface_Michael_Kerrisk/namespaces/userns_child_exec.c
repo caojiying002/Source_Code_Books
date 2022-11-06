@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -62,6 +62,7 @@ struct cmd_options {
     int    verbose;
     char  *uid_map;
     char  *gid_map;
+    char  *projid_map;
     int    opt_cnt;
     struct option_list opt_list[MAX_OPT];
 };
@@ -75,27 +76,27 @@ usage(char *pname)
             "namespace, and possibly also other new namespaces.\n\n");
     fprintf(stderr, "Options can be:\n\n");
 #define fpe(str) fprintf(stderr, "    %s", str);
-    fpe("-C          New cgroup namespace\n");
-    fpe("-i          New IPC namespace\n");
-    fpe("-m          New mount namespace\n");
-    fpe("-n          New network namespace\n");
-    fpe("-p          New PID namespace\n");
-    fpe("-u          New UTS namespace\n");
-    fpe("-U          New user namespace\n");
-    fpe("-M uid_map  Specify UID map for user namespace\n");
-    fpe("-G gid_map  Specify GID map for user namespace\n");
-    fpe("-D          Do not write \"deny\" to /proc/PID/setgroups before\n");
-    fpe("            updating GID map\n");
-    fpe("-r          Create 'root' mappings: map user's UID and GID to "
+    fpe("-C            New cgroup namespace\n");
+    fpe("-i            New IPC namespace\n");
+    fpe("-m            New mount namespace\n");
+    fpe("-n            New network namespace\n");
+    fpe("-p            New PID namespace\n");
+    fpe("-u            New UTS namespace\n");
+    fpe("-U            New user namespace\n");
+    fpe("-M uid_map    Specify UID map for user namespace\n");
+    fpe("-G gid_map    Specify GID map for user namespace\n");
+    fpe("-P projid_map Specify project ID map for user namespace\n");
+    fpe("-D            Do not write \"deny\" to /proc/PID/setgroups before\n");
+    fpe("              updating GID map\n");
+    fpe("-r            Create 'root' mappings: map user's UID and GID to "
         "0 in user\n");
-    fpe("            namespace (equivalent to: -M '0 <uid> 1' "
+    fpe("              namespace (equivalent to: -M '0 <uid> 1' "
         "-G '0 <gid> 1')\n");
-    fpe("-z          Synonym for '-r'\n");
-    fpe("-v          Display verbose messages\n\n");
-    fpe("If -r, -M, or -G is specified, -U is required.\n\n");
+    fpe("-v            Display verbose messages\n\n");
+    fpe("If -r, -M, -G, or -P is specified, -U is required.\n\n");
     fpe("It is not permitted to specify both -r and either -M or -G.\n");
     fpe("\n");
-    fpe("Map strings for -M and -G consist of records of the form:\n");
+    fpe("Map strings for -M -G, and -P consist of records of the form:\n");
     fpe("\n");
     fpe("    ID-inside-ns   ID-outside-ns   len\n");
     fpe("\n");
@@ -104,20 +105,28 @@ usage(char *pname)
     fpe("the commas are replaced by newlines before writing"
         " to map files.\n");
     fprintf(stderr, "\nThe following additional options (primarily useful "
-            "when experimenting with user\n"
-            "namespaces) are repeatable: they are performed in the order "
-            "that they are\n"
-            "specified, before 'cmd' is execed:\n\n");
-    fpe("-h          Push all possible capabilities into inheritable set\n")
-    fpe("-a          Push all possible capabilities into inheritable and\n")
+            "when experimenting with\n"
+            "user namespaces) are repeatable: they can appear multiple times "
+            "and are\n"
+            "performed in the child in the order that they are specified, "
+            "just before\n"
+            "'cmd' is execed:\n\n");
+    fpe("-I          Push all possible capabilities into inheritable set\n")
+    fpe("-A          Push all possible capabilities into inheritable and\n")
     fpe("            ambient sets\n");
     fpe("-s <uid>    Set all process UIDs to <uid>\n");
     fpe("-S r,e,s    Set real/effective/saved-set UIDs\n");
     fpe("-b <bits>   Set securebits flags; 'bits' can be '0' to clear "
         "the flags\n");
     fpe("            or one or more of:\n");
-    fpe("                'r' - SECBIT_NOROOT;\n");
-    fpe("                's' - SECBIT_NO_SETUID_FIXUP\n");
+    fpe("                'a' - NO_CAP_AMBIENT_RAISE\n");
+    fpe("                'A' - NO_CAP_AMBIENT_RAISE_LOCKED\n");
+    fpe("                'k' - KEEP_CAPS\n");
+    fpe("                'K' - KEEP_CAPS_LOCKED\n");
+    fpe("                'r' - NOROOT\n");
+    fpe("                'R' - NOROOT_LOCKED\n");
+    fpe("                's' - NO_SETUID_FIXUP\n");
+    fpe("                'S' - NO_SETUID_FIXUP_LOCKED\n");
     fpe("-d          Display process credentials and capabilities\n");
     fpe("-w <nsecs>  Wait (sleep) for <nsecs> seconds\n");
     fpe("-x <caps>   Set process capabilities; <caps> as per "
@@ -169,13 +178,9 @@ raiseInheritableAndAmbientCaps(bool doAmbient)
 static void
 modify_individual_capability(char *optval)
 {
-    cap_value_t cap;
     char *op;
-    int flag;
-    int capval;
-    bool bad_cap;
+    bool bad_cap = false;
 
-    bad_cap = false;
     for (op = optval; *op; op++) {
         if (*op == '+' || *op == '-')
             break;
@@ -193,6 +198,8 @@ modify_individual_capability(char *optval)
 
     /* After <op>, there should be a valid capability name */
 
+    cap_value_t cap;
+
     if (cap_from_name(op + 1, &cap) == -1) {
         fprintf(stderr, "-X: bad capability name\n");
         exit(EXIT_FAILURE);
@@ -201,6 +208,8 @@ modify_individual_capability(char *optval)
     /* Walk through each of the letters--which specify capability sets--at the
        start of the string, modifying the specified capability setting */
 
+    int flag;
+    int capval;
     for (char *p = optval; p != op; p++) {
         switch (*p) {
         case 'p':
@@ -248,15 +257,18 @@ modify_individual_capability(char *optval)
 static void
 set_securebits(char *optval)
 {
-    int secbits;
-    char *p;
-
-    secbits = 0;
-    for (p = optval; *p != '\0'; p++) {
+    int secbits = 0;
+    for (char *p = optval; *p != '\0'; p++) {
         switch (*p) {
-        case 'r': secbits |= SECBIT_NOROOT;             break;
-        case 's': secbits |= SECBIT_NO_SETUID_FIXUP;    break;
-        case '0': secbits = 0;                          break;
+        case 'a': secbits |= SECBIT_NO_CAP_AMBIENT_RAISE;               break;
+        case 'A': secbits |= SECBIT_NO_CAP_AMBIENT_RAISE_LOCKED;        break;
+        case 'k': secbits |= SECBIT_KEEP_CAPS;                          break;
+        case 'K': secbits |= SECBIT_KEEP_CAPS_LOCKED;                   break;
+        case 'r': secbits |= SECBIT_NOROOT;                             break;
+        case 'R': secbits |= SECBIT_NOROOT_LOCKED;                      break;
+        case 's': secbits |= SECBIT_NO_SETUID_FIXUP;                    break;
+        case 'S': secbits |= SECBIT_NO_SETUID_FIXUP_LOCKED;             break;
+        case '0': secbits = 0;                                          break;
         default:
             fprintf(stderr, "Unexpected value for '-b' "
                     "(securebits flag): %c\n", *p);
@@ -274,14 +286,12 @@ set_securebits(char *optval)
 static void
 set_process_uids(char *optval)
 {
-    char *comma1, *comma2;
-
-    comma2 = NULL;
-    comma1 = strchr(optval, ',');
+    char *comma2 = NULL;
+    char *comma1 = strchr(optval, ',');
     if (comma1 != NULL)
         comma2 = strchr(comma1 + 1, ',');
     if (comma2 == NULL) {
-        fprintf(stderr, "Poorly formed option: -S %s\n",optval);
+        fprintf(stderr, "Expected three comma-separated UIDs: -S %s\n",optval);
         exit(EXIT_FAILURE);
     }
     *comma1 = '\0';
@@ -299,13 +309,12 @@ perform_repeatable_options(struct cmd_options *opts)
     int display_cnt = 0;
     uid_t newuid;
     cap_t caps;
-    char buf[10];
-    int j;
+    char buf[20];
 
-    for (j = 0; j < opts->opt_cnt; j++) {
+    for (int j = 0; j < opts->opt_cnt; j++) {
         switch (opts->opt_list[j].opt) {
 
-        case 'a': /* Raise as many ambient capabilities as possible */
+        case 'A': /* Raise as many ambient capabilities as possible */
             raiseInheritableAndAmbientCaps(true);
             break;
 
@@ -319,7 +328,7 @@ perform_repeatable_options(struct cmd_options *opts)
             display_creds_and_caps(buf);
             break;
 
-        case 'h': /* Raise as many inheritable capabilities as possible */
+        case 'I': /* Raise as many inheritable capabilities as possible */
             raiseInheritableAndAmbientCaps(false);
             break;
 
@@ -364,7 +373,6 @@ static int
 childFunc(void *arg)
 {
     struct cmd_options *opts = (struct cmd_options *) arg;
-    char ch;
 
     /* Wait until the parent has updated the UID and GID mappings.
        See the comment in main(). We wait for end of file on a
@@ -374,6 +382,7 @@ childFunc(void *arg)
     close(pipe_fd[1]);          /* Close our descriptor for the write
                                    end of the pipe so that we see EOF
                                    when parent closes its descriptor */
+    char ch;
     if (read(pipe_fd[0], &ch, 1) != 0) {
         fprintf(stderr,
                 "Failure in child: read from pipe returned != 0\n");
@@ -431,6 +440,16 @@ update_child_maps(struct cmd_options *opts, pid_t child_pid)
         if (update_map(opts->gid_map, map_path) == -1)
             errExit("update_map: gid_map");
     }
+
+    /* Project ID map (project IDs are used for disk quotas; see setquota(8),
+       quotactl(2), etc. */
+
+    if (opts->projid_map != NULL) {
+        snprintf(map_path, PATH_MAX, "/proc/%ld/projid_map", (long) child_pid);
+        if (update_map(opts->projid_map, map_path) == -1)
+            errExit("update_map: projid_map");
+    }
+
 }
 
 static void
@@ -449,10 +468,11 @@ parse_command_options(int argc, char *argv[], struct cmd_options *opts)
     opts->opt_cnt = 0;
     opts->gid_map = NULL;
     opts->uid_map = NULL;
+    opts->projid_map = NULL;
     opts->create_root_mappings = 0;
     opts->deny_setgroups = 1;
     while ((opt = getopt(argc, argv,
-                         "+CimnuUM:G:rzDvpahs:b:S:dx:X:w:")) != -1) {
+                         "+CimnuUM:G:P:rDvpAIs:b:S:dx:X:w:")) != -1) {
         switch (opt) {
         case 'C': opts->flags |= CLONE_NEWCGROUP;       break;
         case 'i': opts->flags |= CLONE_NEWIPC;          break;
@@ -463,15 +483,15 @@ parse_command_options(int argc, char *argv[], struct cmd_options *opts)
         case 'U': opts->flags |= CLONE_NEWUSER;         break;
         case 'M': opts->uid_map = optarg;               break;
         case 'G': opts->gid_map = optarg;               break;
-        case 'r':
-        case 'z': opts->create_root_mappings = 1;       break;
+        case 'P': opts->projid_map = optarg;            break;
+        case 'r': opts->create_root_mappings = 1;       break;
         case 'D': opts->deny_setgroups = 0;             break;
         case 'v': opts->verbose = 1;                    break;
 
         /* Repeatable options: */
 
-        case 'h':
-        case 'a':
+        case 'I':
+        case 'A':
         case 'b':
         case 's':
         case 'd':
@@ -487,7 +507,7 @@ parse_command_options(int argc, char *argv[], struct cmd_options *opts)
             opts->opt_list[opts->opt_cnt].opt = opt;
             opts->opt_list[opts->opt_cnt].val = NULL;
             if (opt == 's' || opt == 'S' || opt == 'x' || opt == 'X' ||
-                    opt == 'w')
+                    opt == 'w' || opt == 'b')
                 opts->opt_list[opts->opt_cnt].val = optarg;
             opts->opt_cnt++;
             break;
@@ -497,16 +517,21 @@ parse_command_options(int argc, char *argv[], struct cmd_options *opts)
         }
     }
 
-    /* -M, -G, or -r without -U is nonsensical */
+    /* -M, -G, -P, or -r without -U is nonsensical */
 
     if (((opts->uid_map != NULL || opts->gid_map != NULL ||
+            opts->projid_map != NULL ||
             opts->create_root_mappings) && !(opts->flags & CLONE_NEWUSER)) ||
             (opts->create_root_mappings &&
-                (opts->uid_map != NULL || opts->gid_map != NULL)))
+                (opts->uid_map != NULL || opts->gid_map != NULL))) {
+        fprintf(stderr, "-M, -G, -P, or -r specified without -U\n");
         usage(argv[0]);
+    }
 
-    if (optind >= argc)
+    if (optind >= argc) {
+        fprintf(stderr, "No command provided\n");
         usage(argv[0]);
+    }
 
     opts->argv = &argv[optind];
 }
@@ -516,8 +541,6 @@ parse_command_options(int argc, char *argv[], struct cmd_options *opts)
 int
 main(int argc, char *argv[])
 {
-    pid_t child_pid;
-    char *stack;
     struct cmd_options opts;
 
     parse_command_options(argc, argv, &opts);
@@ -552,13 +575,13 @@ main(int argc, char *argv[])
 
     /* Create the child in new namespace(s) */
 
-    stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+    char *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
                  MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
     if (stack == MAP_FAILED)
         errExit("mmap");
 
-    child_pid = clone(childFunc, stack + STACK_SIZE,
-                      opts.flags | SIGCHLD, &opts);
+    pid_t child_pid = clone(childFunc, stack + STACK_SIZE,
+                            opts.flags | SIGCHLD, &opts);
     if (child_pid == -1)
         errExit("clone");
 

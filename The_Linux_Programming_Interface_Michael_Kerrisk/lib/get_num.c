@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU Lesser General Public License as published   *
@@ -24,7 +24,6 @@
 /* Print a diagnostic message that contains a function name ('fname'),
    the value of a command-line argument ('arg'), the name of that
    command-line argument ('name'), and a diagnostic error message ('msg'). */
-
 static void
 gnFail(const char *fname, const char *msg, const char *arg, const char *name)
 {
@@ -99,5 +98,5 @@ getInt(const char *arg, int flags, const char *name)
     if (res > INT_MAX || res < INT_MIN)
         gnFail("getInt", "integer out of range", arg, name);
 
-    return (int) res;
+    return res;
 }

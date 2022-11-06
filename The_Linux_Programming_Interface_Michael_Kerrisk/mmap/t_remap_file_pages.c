@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -28,26 +28,22 @@
 int
 main(int argc, char *argv[])
 {
-    int fd, j;
-    char ch;
-    long pageSize;
-    char *addr;
-
-    fd = open("/tmp/tfile", O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
+    int fd = open("/tmp/tfile", O_CREAT | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
     if (fd == -1)
         errExit("open");
 
-    pageSize = sysconf(_SC_PAGESIZE);
+    long pageSize = sysconf(_SC_PAGESIZE);
     if (pageSize == -1)
         fatal("Couldn't determine page size");
 
-    for (ch = 'a'; ch < 'd'; ch++)
-        for (j = 0; j < pageSize; j++)
+    for (char ch = 'a'; ch < 'd'; ch++)
+        for (int j = 0; j < pageSize; j++)
             write(fd, &ch, 1);
 
     system("od -a /tmp/tfile");
 
-    addr = mmap(0, 3 * pageSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    char *addr = mmap(NULL, 3 * pageSize, PROT_READ | PROT_WRITE,
+                        MAP_SHARED, fd, 0);
     if (addr == MAP_FAILED)
         errExit("mmap");
 
@@ -63,9 +59,9 @@ main(int argc, char *argv[])
 
     /* Now we modify the contents of the mapping */
 
-    for (j = 0; j < 0x100; j++)         /* Modifies page 2 of file */
+    for (int j = 0; j < 0x100; j++)     /* Modifies page 2 of file */
         *(addr + j) = '0';
-    for (j = 0; j < 0x100; j++)         /* Modifies page 0 of file */
+    for (int j = 0; j < 0x100; j++)     /* Modifies page 0 of file */
         *(addr + 2 * pageSize + j) = '2';
 
     system("od -a /tmp/tfile");

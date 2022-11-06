@@ -11,6 +11,8 @@ all : ${EXE}
 
 allgen : ${GEN_EXE}
 
+LDLIBS = ${IMPL_LDLIBS} ${IMPL_THREAD_FLAGS}
+
 clean : 
 	${RM} ${EXE} *.o
 

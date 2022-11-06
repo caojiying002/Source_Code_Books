@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -23,13 +23,11 @@
 int
 main(int argc, char *argv[])
 {
-    int j;
-    union semun dummy;
-
     if (argc > 1 && strcmp(argv[1], "--help") == 0)
         usageErr("%s [semid...]\n", argv[0]);
 
-    for (j = 1; j < argc; j++)
+    union semun dummy;
+    for (int j = 1; j < argc; j++)
         if (semctl(getInt(argv[j], 0, "semid"), 0, IPC_RMID, dummy) == -1)
             errExit("semctl %s", argv[j]);
 

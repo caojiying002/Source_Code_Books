@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -24,20 +24,17 @@
 int
 main(int argc, char *argv[])
 {
-    char *src, *dst;
-    int fdSrc, fdDst;
-    struct stat sb;
-
     if (argc != 3)
         usageErr("%s source-file dest-file\n", argv[0]);
 
-    fdSrc = open(argv[1], O_RDONLY);
+    int fdSrc = open(argv[1], O_RDONLY);
     if (fdSrc == -1)
         errExit("open");
 
     /* Use fstat() to obtain size of file: we use this to specify the
        size of the two mappings */
 
+    struct stat sb;
     if (fstat(fdSrc, &sb) == -1)
         errExit("fstat");
 
@@ -47,18 +44,19 @@ main(int argc, char *argv[])
     if (sb.st_size == 0)
         exit(EXIT_SUCCESS);
 
-    src = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fdSrc, 0);
+    char *src = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fdSrc, 0);
     if (src == MAP_FAILED)
         errExit("mmap");
 
-    fdDst = open(argv[2], O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    int fdDst = open(argv[2], O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (fdDst == -1)
         errExit("open");
 
     if (ftruncate(fdDst, sb.st_size) == -1)
         errExit("ftruncate");
 
-    dst = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fdDst, 0);
+    char *dst = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE,
+                     MAP_SHARED, fdDst, 0);
     if (dst == MAP_FAILED)
         errExit("mmap");
 

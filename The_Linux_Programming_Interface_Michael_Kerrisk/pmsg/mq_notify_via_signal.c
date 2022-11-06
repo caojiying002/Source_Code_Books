@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -39,25 +39,19 @@ handler(int sig)
 int
 main(int argc, char *argv[])
 {
-    struct sigevent sev;
-    mqd_t mqd;
-    struct sigaction sa;
-    char *msg;
-    ssize_t numRead;
-    struct mq_attr attr;
-
     if (argc != 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s /mq-name\n", argv[0]);
 
     /* Open the (existing) queue in nonblocking mode so that we can drain
        messages from it without blocking once the queue has been emptied */
 
-    mqd = mq_open(argv[1], O_RDONLY | O_NONBLOCK);
+    mqd_t mqd = mq_open(argv[1], O_RDONLY | O_NONBLOCK);
     if (mqd == (mqd_t) -1)
         errExit("mq_open");
 
     /* Establish handler for notification signal */
 
+    struct sigaction sa;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     sa.sa_handler = handler;
@@ -67,10 +61,11 @@ main(int argc, char *argv[])
     /* Determine mq_msgsize for message queue, and allocate an input buffer
        of that size */
 
+    struct mq_attr attr;
     if (mq_getattr(mqd, &attr) == -1)
         errExit("mq_getattr");
 
-    msg = malloc(attr.mq_msgsize);
+    char *msg = malloc(attr.mq_msgsize);
     if (msg == NULL)
         errExit("malloc");
 
@@ -85,6 +80,7 @@ main(int argc, char *argv[])
 
             /* Register for message notification */
 
+            struct sigevent sev;
             sev.sigev_notify = SIGEV_SIGNAL;
             sev.sigev_signo = NOTIFY_SIG;
             if (mq_notify(mqd, &sev) == -1)
@@ -92,11 +88,12 @@ main(int argc, char *argv[])
 
             /* Drain all messages from the queue */
 
+            ssize_t numRead;
             while ((numRead = mq_receive(mqd, msg,
                                 attr.mq_msgsize, NULL)) >= 0) {
                 /* Do whatever processing is required for each message */
 
-                printf("Read %ld bytes\n", (long) numRead);
+                printf("Read %zd bytes\n", numRead);
             }
             if (errno != EAGAIN)        /* Unexpected error */
                 errExit("mq_receive");

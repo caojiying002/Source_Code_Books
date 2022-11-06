@@ -49,7 +49,7 @@ more information on 'make', try the command 'man make' or 'info make'.
 Installing library dependencies
 -------------------------------
 
-Various programs in the course code depend on libraries that may not
+Various programs in the source code depend on libraries that may not
 be installed by default on your system. If you have build problems,
 then in the first instance you should make sure that the following
 libraries are installed.
@@ -59,14 +59,15 @@ Debian, Ubuntu, and similar distributions:
         libcap-dev
         libacl1-dev
         libselinux1-dev
-	libseccomp-dev
+        libseccomp-dev
+        gcc-multilib
 
 RPM-based distributions (Fedora, OpenSUSE, CentOS, etc.):
 
         libcap-devel
         libacl-devel
         libselinux-devel
-	libseccomp-devel
+        libseccomp-devel
 
 If you are using Arch or Gentoo, then I'm sure you can work out what to
 do, based on the above information.

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -29,25 +29,23 @@ static void notifySetup(mqd_t *mqdp);
 static void
 drainQueue(mqd_t mqd)
 {
-    ssize_t numRead;
-    char *msg;
-    struct mq_attr attr;
-
     /* Determine mq_msgsize for message queue, and allocate
        a buffer of that size */
 
+    struct mq_attr attr;
     if (mq_getattr(mqd, &attr) == -1)
         errExit("mq_getattr");
 
-    msg = malloc(attr.mq_msgsize);
+    char *msg = malloc(attr.mq_msgsize);
     if (msg == NULL)
         errExit("malloc");
 
+    ssize_t numRead;
     while ((numRead = mq_receive(mqd, msg, attr.mq_msgsize, NULL)) >= 0) {
 
         /* Do whatever processing is required for message */
 
-        printf("Read %ld bytes\n", (long) numRead);
+        printf("Read %zd bytes\n", numRead);
     }
 
     if (errno != EAGAIN)                /* Unexpected error */
@@ -59,9 +57,7 @@ drainQueue(mqd_t mqd)
 static void                     /* Thread notification function */
 threadFunc(union sigval sv)
 {
-    mqd_t *mqdp;
-
-    mqdp = sv.sival_ptr;
+    mqd_t *mqdp = sv.sival_ptr;
 
     /* Reregister for message notification */
 
@@ -87,12 +83,10 @@ notifySetup(mqd_t *mqdp)
 int
 main(int argc, char *argv[])
 {
-    mqd_t mqd;
-
     if (argc != 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s /mq-name\n", argv[0]);
 
-    mqd = mq_open(argv[1], O_RDONLY | O_NONBLOCK);
+    mqd_t mqd = mq_open(argv[1], O_RDONLY | O_NONBLOCK);
     if (mqd == (mqd_t) -1)
         errExit("mq_open");
 

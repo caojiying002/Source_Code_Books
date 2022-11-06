@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -53,24 +53,23 @@ handler(int sig, siginfo_t *si, void *ucontext)
 int
 main(int argc, char *argv[])
 {
-    struct sigaction sa;
-    int fd, events, fnum;
-    const int NOTIFY_SIG = SIGRTMIN;
-    char *p;
-
     if (argc < 2 || strcmp(argv[1], "--help") == 0)
         usageError(argv[0], NULL);
 
     /* Establish handler for notification signal */
 
+    const int NOTIFY_SIG = SIGRTMIN;
+
+    struct sigaction sa;
     sa.sa_sigaction = handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_SIGINFO;           /* So handler gets siginfo_t arg. */
     if (sigaction(NOTIFY_SIG, &sa, NULL) == -1)
         errExit("sigaction");
 
-    for (fnum = 1; fnum < argc; fnum++) {
-        p = strchr(argv[fnum], ':');    /* Look for optional ':' */
+    for (int fnum = 1; fnum < argc; fnum++) {
+        int events;
+        char *p = strchr(argv[fnum], ':');      /* Look for optional ':' */
 
         if (p == NULL) {                /* Default is all events + multishot */
             events = DN_ACCESS | DN_ATTRIB | DN_CREATE | DN_DELETE |
@@ -94,7 +93,7 @@ main(int argc, char *argv[])
 
         /* Obtain a file descriptor for the directory to be monitored */
 
-        fd = open(argv[fnum], O_RDONLY);
+        int fd = open(argv[fnum], O_RDONLY);
         if (fd == -1)
             errExit("open");
         printf("opened '%s' as file descriptor %d\n", argv[fnum], fd);

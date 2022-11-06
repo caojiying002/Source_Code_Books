@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
         write(STDOUT_FILENO, "\n", 1);
         if (close(pfd[0]) == -1)
             errExit("close");
-        _exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS);
 
     default:            /* Parent - writes to pipe */
         if (close(pfd[0]) == -1)            /* Read end is unused */

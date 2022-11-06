@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -13,14 +13,8 @@
 /* bad_longjmp.c
 
    Demonstrate the incorrect use of longjmp() to jump into a function
-   that has already returned.
-
-   Usage: bad_longjmp [x]
-
-   The presence or absence of the command-line argument determines
-   whether we will call an intervening recursive function between the
-   function that establishes the jump point, and the one that does
-   the jump. Each case results in a different erroneous behaviour.
+   that has already returned. As a consequnce the program is killed by
+   a SIGSEGV signal (Segmentation fault).
 */
 #include <setjmp.h>
 #include "tlpi_hdr.h"
@@ -46,27 +40,15 @@ setJump2(void)
 static void
 setJump(void)
 {
-
     printf("Entered setJump\n");
     setJump2();
     printf("Exiting setJump\n");
-}
-
-static void
-recur(int n)
-{
-    printf("Entered recur %d\n", n);
-    if (n > 0)
-        recur(n - 1);
-    printf("Exiting recur %d\n", n);
 }
 
 int
 main(int argc, char *argv[])
 {
     setJump();
-    if (argc > 1)
-        recur(2);
     doJump();
     printf("Back at main\n");
 

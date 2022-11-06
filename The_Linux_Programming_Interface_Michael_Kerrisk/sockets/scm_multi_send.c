@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -49,32 +49,19 @@ usageError(char *pname)
 int
 main(int argc, char *argv[])
 {
-    int data, sfd, opt;
-    pid_t pid;
-    uid_t uid;
-    gid_t gid;
-    ssize_t numSent;
-    bool useDatagramSocket, sendData;
-    struct msghdr msgh;
-    struct iovec iov;
-    int fdCnt;                  /* Number of FDs in ancillary data */
-    char *controlMsg;           /* Ancillary data (control message) */
-    size_t controlMsgSize;      /* Size of ancillary data */
-    struct cmsghdr *cmsgp;      /* Pointer used to iterate through
-                                   headers in ancillary data */
-
     /* By default, this program sends an SCM_CREDENTIALS message containing
        the process's real credentials. This can be altered via command-line
        options. */
 
-    pid = getpid();
-    uid = getuid();
-    gid = getgid();
+    pid_t pid = getpid();
+    uid_t uid = getuid();
+    gid_t gid = getgid();
 
     /* Parse command-line options */
 
-    useDatagramSocket = false;
-    sendData = true;
+    bool useDatagramSocket = false;
+    bool sendData = true;
+    int opt;
 
     while ((opt = getopt(argc, argv, "dnp:u:g:")) != -1) {
         switch (opt) {
@@ -103,7 +90,7 @@ main(int argc, char *argv[])
         }
     }
 
-    fdCnt = argc - optind;
+    int fdCnt = argc - optind;  /* Number of FDs in ancillary data */
     if (fdCnt <= 0)
         usageError(argv[0]);
 
@@ -112,9 +99,10 @@ main(int argc, char *argv[])
        and so needs to be suitably aligned: malloc() provides a block
        with suitable alignment. */
 
-    controlMsgSize = CMSG_SPACE(sizeof(int) * fdCnt) +
+    size_t fdAllocSize = sizeof(int) * fdCnt;
+    size_t controlMsgSize = CMSG_SPACE(fdAllocSize) +
                      CMSG_SPACE(sizeof(struct ucred));
-    controlMsg = malloc(controlMsgSize);
+    char *controlMsg = malloc(controlMsgSize);
     if (controlMsg == NULL)
         errExit("malloc");
 
@@ -128,6 +116,7 @@ main(int argc, char *argv[])
        need to use this field because we use connect() below, which sets
        a default outgoing address for datagrams. */
 
+    struct msghdr msgh;
     msgh.msg_name = NULL;
     msgh.msg_namelen = 0;
 
@@ -136,12 +125,13 @@ main(int argc, char *argv[])
        The following allows for testing the results if no real data is
        sent with the ancillary data. */
 
+    struct iovec iov;
+    int data = 12345;
     if (sendData) {
         msgh.msg_iov = &iov;
         msgh.msg_iovlen = 1;
         iov.iov_base = &data;
-        iov.iov_len = sizeof(int);
-        data = 12345;
+        iov.iov_len = sizeof(data);
     } else {
         msgh.msg_iov = NULL;
         msgh.msg_iovlen = 0;
@@ -158,20 +148,20 @@ main(int argc, char *argv[])
 
     /* First, the file descriptor list */
 
-    cmsgp = CMSG_FIRSTHDR(&msgh);
+    struct cmsghdr *cmsgp = CMSG_FIRSTHDR(&msgh);
     cmsgp->cmsg_level = SOL_SOCKET;
     cmsgp->cmsg_type = SCM_RIGHTS;
 
     /* The ancillary message must include space for the required number
        of file descriptors */
 
-    cmsgp->cmsg_len = CMSG_LEN(sizeof(int) * fdCnt);
+    cmsgp->cmsg_len = CMSG_LEN(fdAllocSize);
     printf("cmsg_len 1: %ld\n", (long) cmsgp->cmsg_len);
 
     /* Open files named on the command line, and copy the resulting block of
        file descriptors into the data field of the ancillary message */
 
-    int *fdList = calloc(fdCnt, sizeof(int));
+    int *fdList = malloc(fdAllocSize);
     if (fdList == NULL)
         errExit("calloc");
 
@@ -184,7 +174,7 @@ main(int argc, char *argv[])
              errExit("open");
     }
 
-    memcpy(CMSG_DATA(cmsgp), fdList, fdCnt * sizeof(int));
+    memcpy(CMSG_DATA(cmsgp), fdList, fdAllocSize);
 
     /* Next, the credentials */
 
@@ -211,17 +201,18 @@ main(int argc, char *argv[])
 
     /* Connect to the peer socket */
 
-    sfd = unixConnect(SOCK_PATH, useDatagramSocket ? SOCK_DGRAM : SOCK_STREAM);
+    int sfd = unixConnect(SOCK_PATH,
+                          useDatagramSocket ? SOCK_DGRAM : SOCK_STREAM);
     if (sfd == -1)
         errExit("unixConnect");
 
     /* Send the data plus ancillary data */
 
-    numSent = sendmsg(sfd, &msgh, 0);
-    if (numSent == -1)
+    ssize_t ns = sendmsg(sfd, &msgh, 0);
+    if (ns == -1)
         errExit("sendmsg");
 
-    printf("sendmsg() returned %ld\n", (long) numSent);
+    printf("sendmsg() returned %zd\n", ns);
 
     exit(EXIT_SUCCESS);
 }

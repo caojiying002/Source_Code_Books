@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -29,22 +29,18 @@
 int
 main(int argc, char *argv[])
 {
-    pid_t pid;
-    cpu_set_t set;
-    size_t s;
-    int cpu;
-
     if (argc != 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s pid\n", argv[0]);
 
-    pid = getInt(argv[1], GN_NONNEG, "pid");
+    pid_t pid = getInt(argv[1], GN_NONNEG, "pid");
 
-    s = sched_getaffinity(pid, sizeof(cpu_set_t), &set);
+    cpu_set_t set;
+    int s = sched_getaffinity(pid, sizeof(cpu_set_t), &set);
     if (s == -1)
         errExit("sched_getaffinity");
 
     printf("CPUs:");
-    for (cpu = 0; cpu < CPU_SETSIZE; cpu++)
+    for (int cpu = 0; cpu < CPU_SETSIZE; cpu++)
         if (CPU_ISSET(cpu, &set))
             printf(" %d", cpu);
     printf("\n");

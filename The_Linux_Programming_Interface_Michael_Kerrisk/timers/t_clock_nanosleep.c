@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -36,16 +36,12 @@ sigintHandler(int sig)
 int
 main(int argc, char *argv[])
 {
-    struct timeval start, finish;
-    struct timespec request, remain;
-    struct sigaction sa;
-    int s, flags;
-
     if (argc < 3 || strcmp(argv[1], "--help") == 0)
         usageErr("%s secs nanosecs [a]\n", argv[0]);
 
     /* Allow SIGINT handler to interrupt clock_nanosleep() */
 
+    struct sigaction sa;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     sa.sa_handler = sigintHandler;
@@ -54,13 +50,15 @@ main(int argc, char *argv[])
 
     /* If more than three command-line arguments, use TIMER_ABSTIME flag */
 
-    flags = (argc > 3) ? TIMER_ABSTIME : 0;
+    int flags = (argc > 3) ? TIMER_ABSTIME : 0;
+
+    struct timespec request;
 
     if (flags == TIMER_ABSTIME) {
         if (clock_gettime(CLOCK_REALTIME, &request) == -1)
             errExit("clock_gettime");
         printf("Initial CLOCK_REALTIME value: %ld.%09ld\n",
-                (long) request.tv_sec, (long) request.tv_nsec);
+                (long) request.tv_sec, request.tv_nsec);
 
         request.tv_sec  += getLong(argv[1], 0, "secs");
         request.tv_nsec += getLong(argv[2], 0, "nanosecs");
@@ -74,11 +72,13 @@ main(int argc, char *argv[])
         request.tv_nsec = getLong(argv[2], 0, "nanosecs");
     }
 
+    struct timeval start, finish;
     if (gettimeofday(&start, NULL) == -1)
         errExit("gettimeofday");
 
     for (;;) {
-        s = clock_nanosleep(CLOCK_REALTIME, flags, &request, &remain);
+        struct timespec remain;
+        int s = clock_nanosleep(CLOCK_REALTIME, flags, &request, &remain);
         if (s != 0 && s != EINTR)
             errExitEN(s, "clock_nanosleep");
 

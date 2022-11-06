@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -40,24 +40,22 @@ handler(int sig, siginfo_t *si, void *uc)
 int
 main(int argc, char *argv[])
 {
-    struct itimerspec ts;
-    timer_t tid;
-    int j;
-    struct sigaction sa;
-
     if (argc < 2)
         usageErr("%s secs [nsecs [int-secs [int-nsecs]]]\n", argv[0]);
 
+    struct sigaction sa;
     sa.sa_flags = SA_SIGINFO;
     sa.sa_sigaction = handler;
     sigemptyset(&sa.sa_mask);
     if (sigaction(SIGALRM, &sa, NULL) == -1)
         errExit("sigaction");
 
+    timer_t tid;
     if (timer_create(CLOCK_REALTIME, NULL, &tid) == -1)
         errExit("timer_create");
     printf("timer ID = %ld\n", (long) tid);
 
+    struct itimerspec ts;
     ts.it_value.tv_sec = atoi(argv[1]);
     ts.it_value.tv_nsec = (argc > 2) ? atoi(argv[2]) : 0;
     ts.it_interval.tv_sec = (argc > 3) ? atoi(argv[3]) : 0;
@@ -65,6 +63,6 @@ main(int argc, char *argv[])
     if (timer_settime(tid, 0, &ts, NULL) == -1)
         errExit("timer_settime");
 
-    for (j = 0; ; j++)
+    for (int j = 0; ; j++)
         pause();
 }

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -68,12 +68,9 @@ childFunc(void *arg)
 int
 main(int argc, char *argv[])
 {
-    int flags, opt, verbose;
-    pid_t child_pid;
-    char *stack;
 
-    flags = 0;
-    verbose = 0;
+    int flags = 0;
+    int verbose = 0;
 
     /* Parse command-line options. The initial '+' character in
        the final getopt() argument prevents GNU-style permutation
@@ -82,6 +79,7 @@ main(int argc, char *argv[])
        has command-line options. We don't want getopt() to treat
        those as options to this program. */
 
+    int opt;
     while ((opt = getopt(argc, argv, "+CimnpuUv")) != -1) {
         switch (opt) {
         case 'C': flags |= CLONE_NEWCGROUP;     break;
@@ -99,14 +97,14 @@ main(int argc, char *argv[])
     if (optind >= argc)
         usage(argv[0]);
 
-    stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
-                 MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+    char *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
     if (stack == MAP_FAILED)
         errExit("mmap");
 
-    child_pid = clone(childFunc,
-                      stack + STACK_SIZE,
-                      flags | SIGCHLD, &argv[optind]);
+    pid_t child_pid = clone(childFunc,
+                            stack + STACK_SIZE,
+                            flags | SIGCHLD, &argv[optind]);
     if (child_pid == -1)
         errExit("clone");
 

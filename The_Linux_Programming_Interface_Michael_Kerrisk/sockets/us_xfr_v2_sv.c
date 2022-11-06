@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -24,11 +24,7 @@
 int
 main(int argc, char *argv[])
 {
-    int sfd, cfd;
-    ssize_t numRead;
-    char buf[BUF_SIZE];
-
-    sfd = unixBind(SV_SOCK_PATH, SOCK_STREAM);
+    int sfd = unixBind(SV_SOCK_PATH, SOCK_STREAM);
     if (sfd == -1)
         errExit("unixBind");
 
@@ -36,11 +32,14 @@ main(int argc, char *argv[])
         errExit("listen");
 
     for (;;) {          /* Handle client connections iteratively */
-        cfd = accept(sfd, NULL, NULL);
+        int cfd = accept(sfd, NULL, NULL);
         if (cfd == -1)
             errExit("accept");
 
         /* Transfer data from connected socket to stdout until EOF */
+
+        ssize_t numRead;
+        char buf[BUF_SIZE];
 
         while ((numRead = read(cfd, buf, BUF_SIZE)) > 0)
             if (write(STDOUT_FILENO, buf, numRead) != numRead)
@@ -48,6 +47,7 @@ main(int argc, char *argv[])
 
         if (numRead == -1)
             errExit("read");
+
         if (close(cfd) == -1)
             errMsg("close");
     }

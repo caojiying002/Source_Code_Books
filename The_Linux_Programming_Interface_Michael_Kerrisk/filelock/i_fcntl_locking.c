@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -76,8 +76,7 @@ displayCmdFmt(int argc, char *argv[], const int fdList[])
         printf("    file-num is a number from the following list\n");
         for (j = 1; j < argc; j++)
             printf("        %2d  %-10s [%s locking]\n", j, argv[j],
-                mandLockingEnabled(fdList[j]) ? "mandatory" :
-                                                "advisory");
+                mandLockingEnabled(fdList[j]) ? "mandatory" : "advisory");
     }
     printf("    'cmd' is 'g' (GETLK), 's' (SETLK), or 'w' (SETLKW)\n");
 #ifdef __linux__

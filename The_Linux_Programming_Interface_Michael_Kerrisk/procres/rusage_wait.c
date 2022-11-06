@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -48,12 +48,9 @@ printChildRusage(const char *msg)
 int
 main(int argc, char *argv[])
 {
-    clock_t start;
-    sigset_t mask;
-    struct sigaction sa;
-
     setbuf(stdout, NULL);       /* Disable buffering of stdout */
 
+    struct sigaction sa;
     sa.sa_handler = handler;
     sa.sa_flags = 0;
     sigemptyset(&sa.sa_mask);
@@ -63,6 +60,7 @@ main(int argc, char *argv[])
     /* Child informs parent of impending termination using a signal;
        block that signal until the parent is ready to catch it. */
 
+    sigset_t mask;
     sigemptyset(&mask);
     sigaddset(&mask, SIG);
     if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1)
@@ -73,7 +71,7 @@ main(int argc, char *argv[])
         errExit("fork");
 
     case 0:             /* Child */
-        for (start = clock(); clock() - start < NSECS * CLOCKS_PER_SEC;)
+        for (clock_t start = clock(); clock() - start < NSECS * CLOCKS_PER_SEC;)
             continue;           /* Burn NSECS seconds of CPU time */
         printf("Child terminating\n");
 
@@ -81,7 +79,7 @@ main(int argc, char *argv[])
 
         if (kill(getppid(), SIG) == -1)
             errExit("kill");
-        _exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS);
 
     default:    /* Parent */
         sigemptyset(&mask);

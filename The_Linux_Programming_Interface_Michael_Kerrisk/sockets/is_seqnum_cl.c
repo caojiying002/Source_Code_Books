@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -51,9 +51,10 @@ main(int argc, char *argv[])
        that can be used to successfully connect a socket */
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
+
         cfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         if (cfd == -1)
-            continue;                           /* On error, try next address */
+            continue;                   /* On error, try next address */
 
         if (connect(cfd, rp->ai_addr, rp->ai_addrlen) != -1)
             break;                              /* Success */

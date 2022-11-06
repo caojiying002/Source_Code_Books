@@ -8,8 +8,7 @@ LINUX_EXE = dump_seccomp_filter \
 	    seccomp_bench \
 	    seccomp_control_open seccomp_deny_open \
 	    seccomp_launch \
-	    seccomp_perf \
-	    seccomp_user_notification
+	    seccomp_perf
 
 EXE = ${GEN_EXE} ${LINUX_EXE}
 
@@ -22,6 +21,10 @@ clean :
 
 showall :
 	@ echo ${EXE}
+
+seccomp_unotify_mkdir : seccomp_unotify_mkdir.o seccomp_functions.o
+
+seccomp_unotify_openat : seccomp_unotify_openat.o seccomp_functions.o
 
 libseccomp_demo : libseccomp_demo.c
 	${CC} -o $@ libseccomp_demo.c ${CFLAGS} ${IMPL_LDLIBS} -lseccomp

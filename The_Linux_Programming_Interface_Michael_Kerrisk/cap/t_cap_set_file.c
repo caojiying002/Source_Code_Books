@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -20,19 +20,16 @@
 int
 main(int argc, char *argv[])
 {
-    cap_t capSets;
-    char *textCaps;
-
     if (argc != 3) {
         fprintf(stderr, "%s <textual-cap-set> <pathname>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
-    capSets = cap_from_text(argv[1]);
+    cap_t capSets = cap_from_text(argv[1]);
     if (capSets == NULL)
         errExit("cap_from_text");
 
-    textCaps = cap_to_text(capSets, NULL);
+    char *textCaps = cap_to_text(capSets, NULL);
     if (textCaps == NULL)
         errExit("cap_to_text");
 

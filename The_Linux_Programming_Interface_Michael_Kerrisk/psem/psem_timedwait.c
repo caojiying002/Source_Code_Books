@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -27,13 +27,10 @@
 int
 main(int argc, char *argv[])
 {
-    sem_t *sem;
-    struct timespec ts;
-
     if (argc != 3 || strcmp(argv[1], "--help") == 0)
         usageErr("%s sem-name num-secs\n", argv[0]);
 
-    sem = sem_open(argv[1], 0);
+    sem_t *sem = sem_open(argv[1], 0);
     if (sem == SEM_FAILED)
         errExit("sem_open");
 
@@ -41,6 +38,7 @@ main(int argc, char *argv[])
        So we take the number of (relative) seconds specified on the
        command line, and add it to the current system time. */
 
+    struct timespec ts;
     if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
         errExit("clock_gettime-CLOCK_REALTIME");
 

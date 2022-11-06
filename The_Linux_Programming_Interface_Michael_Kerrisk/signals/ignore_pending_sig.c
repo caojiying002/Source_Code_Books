@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -39,13 +39,13 @@ handler(int sig)
 int
 main(int argc, char *argv[])
 {
-    sigset_t pending, blocked;
     const int numSecs = 5;
-    struct sigaction sa;
 
     /* Set up a handler for SIGINT */
 
     printf("Setting up handler for SIGINT\n");
+
+    struct sigaction sa;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     sa.sa_handler = handler;
@@ -54,6 +54,7 @@ main(int argc, char *argv[])
 
     /* Block SIGINT for a while */
 
+    sigset_t blocked;
     sigemptyset(&blocked);
     sigaddset(&blocked, SIGINT);
     if (sigprocmask(SIG_SETMASK, &blocked, NULL) == -1)
@@ -64,6 +65,7 @@ main(int argc, char *argv[])
 
     /* Display mask of pending signals */
 
+    sigset_t pending;
     if (sigpending(&pending) == -1)
         errExit("sigpending");
     printf("PENDING signals are: \n");

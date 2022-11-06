@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -50,9 +50,6 @@
 static struct sock_filter *
 fetchFilter(pid_t pid, int filterIndex, int *instrCnt)
 {
-    struct sock_filter *filterProg;
-    int icnt;
-
     /* Attach to the target process and wait for it to be stopped by
        the attach operation */
 
@@ -64,7 +61,7 @@ fetchFilter(pid_t pid, int filterIndex, int *instrCnt)
 
     /* Discover the number of instructions in the BPF filter */
 
-    icnt = ptrace(PTRACE_SECCOMP_GET_FILTER, pid, filterIndex, NULL);
+    int icnt = ptrace(PTRACE_SECCOMP_GET_FILTER, pid, filterIndex, NULL);
     if (icnt == -1) {
         if (errno == ENOENT) {
             fprintf(stderr, "No BPF program exists at index %d\n", filterIndex);
@@ -80,6 +77,7 @@ fetchFilter(pid_t pid, int filterIndex, int *instrCnt)
 
     /* Allocate a buffer and fetch the content of the BPF filter */
 
+    struct sock_filter *filterProg;
     filterProg = calloc(icnt, sizeof(struct sock_filter));
     if (filterProg == NULL)
         errExit("calloc");
@@ -99,9 +97,7 @@ fetchFilter(pid_t pid, int filterIndex, int *instrCnt)
 static void
 dumpFilter(char *pathname, struct sock_filter *filterProg, int instrCnt)
 {
-    int fd;
-
-    fd = open(pathname, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+    int fd = open(pathname, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
     if (fd == -1)
         errExit("open");
 
@@ -117,20 +113,16 @@ dumpFilter(char *pathname, struct sock_filter *filterProg, int instrCnt)
 int
 main(int argc, char *argv[])
 {
-    struct sock_filter *filterProg;
-    int filterIndex;
-    int instrCnt;       /* Number of instructions in BPF filter */
-    pid_t pid;
-
     if (argc < 2 || strcmp(argv[1], "--help") == 0) {
         fprintf(stderr, "%s PID dump-file [filter-index]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
-    pid = atoi(argv[1]);
-    filterIndex = (argc > 3) ? atoi(argv[3]) : 0;
+    pid_t pid = atoi(argv[1]);
+    int filterIndex = (argc > 3) ? atoi(argv[3]) : 0;
 
-    filterProg = fetchFilter(pid, filterIndex, &instrCnt);
+    int instrCnt;       /* Number of instructions in BPF filter */
+    struct sock_filter *filterProg = fetchFilter(pid, filterIndex, &instrCnt);
 
     dumpFilter(argv[2], filterProg, instrCnt);
 

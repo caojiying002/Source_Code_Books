@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -28,11 +28,10 @@ int
 main(int argc, char *argv[])
 {
     char buf[BUF_SIZE];
-    int outbound[2];            /* Pipe to send data from parent to child */
-    int inbound[2];             /* Pipe to send data from child to parent */
-    int j;
     ssize_t cnt;
 
+    int outbound[2];            /* Pipe to send data from parent to child */
+    int inbound[2];             /* Pipe to send data from child to parent */
     if (pipe(outbound) == -1)
         errExit("pipe");
     if (pipe(inbound) == -1)
@@ -55,7 +54,7 @@ main(int argc, char *argv[])
            and send back to parent on inbound pipe */
 
         while ((cnt = read(outbound[0], buf, BUF_SIZE)) > 0) {
-            for (j = 0; j < cnt; j++)
+            for (int j = 0; j < cnt; j++)
                 buf[j] = toupper((unsigned char) buf[j]);
             if (write(inbound[1], buf, cnt) != cnt)
                 fatal("failed/partial write(): inbound pipe");
@@ -63,7 +62,7 @@ main(int argc, char *argv[])
 
         if (cnt == -1)
             errExit("read");
-        _exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS);
 
     default:
 

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -25,9 +25,8 @@ int
 main(int argc, char *argv[])
 {
     struct msginfo info;
-    int s;
 
-    s = msgctl(0, MSG_INFO, (struct msqid_ds *) &info);
+    int s = msgctl(0, MSG_INFO, (struct msqid_ds *) &info);
     if (s == -1)
         errExit("msgctl");
 

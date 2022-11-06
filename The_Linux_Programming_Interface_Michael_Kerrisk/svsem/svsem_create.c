@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -40,16 +40,13 @@ usageError(const char *progName, const char *msg)
 int
 main(int argc, char *argv[])
 {
-    int numKeyFlags;            /* Counts -f, -k, and -p options */
-    int flags, semid, numSems, opt;
-    unsigned int perms;
-    long lkey;
-    key_t key;
-
     /* Parse command-line options and arguments */
 
-    numKeyFlags = 0;
-    flags = 0;
+    int numKeyFlags = 0;        /* Counts -f, -k, and -p options */
+    int flags = 0;
+    long lkey;
+    key_t key;
+    int opt;
 
     while ((opt = getopt(argc, argv, "cf:k:px")) != -1) {
         switch (opt) {
@@ -92,15 +89,15 @@ main(int argc, char *argv[])
     if (optind >= argc)
         usageError(argv[0], "Must specify number of semaphores\n");
 
-    numSems = getInt(argv[optind], 0, "num-sems");
+    int numSems = getInt(argv[optind], 0, "num-sems");
 
-    perms = (argc <= optind + 1) ? (S_IRUSR | S_IWUSR) :
-                getInt(argv[optind + 1], GN_BASE_8, "octal-perms");
+    unsigned int perms = (argc <= optind + 1) ? (S_IRUSR | S_IWUSR) :
+                         getInt(argv[optind + 1], GN_BASE_8, "octal-perms");
 
-    semid = semget(key, numSems, flags | perms);
+    int semid = semget(key, numSems, flags | perms);
     if (semid == -1)
         errExit("semget");
 
-    printf("%d\n", semid);      /* On success, display semaphore set id */
+    printf("%d\n", semid);      /* On success, display semaphore set ID */
     exit(EXIT_SUCCESS);
 }

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -32,12 +32,6 @@
 int
 main(int argc, char *argv[])
 {
-    int data, sfd, opt;
-    ssize_t ns;
-    bool useDatagramSocket, noExplicitCreds;
-    struct msghdr msgh;
-    struct iovec iov;
-
     /* Allocate a char array of suitable size to hold the ancillary data.
        However, since this buffer is in reality a 'struct cmsghdr', use a
        union to ensure that it is aligned as required for that structure.
@@ -50,13 +44,12 @@ main(int argc, char *argv[])
                         /* Space large enough to hold a ucred structure */
         struct cmsghdr align;
     } controlMsg;
-    struct cmsghdr *cmsgp;      /* Pointer used to iterate through
-                                   headers in ancillary data */
 
     /* Parse command-line options */
 
-    useDatagramSocket = false;
-    noExplicitCreds = false;
+    bool useDatagramSocket = false;
+    bool noExplicitCreds = false;
+    int opt;
 
     while ((opt = getopt(argc, argv, "dn")) != -1) {
         switch (opt) {
@@ -81,21 +74,22 @@ main(int argc, char *argv[])
        need to use this field because we use connect() below, which sets
        a default outgoing address for datagrams. */
 
+    struct msghdr msgh;
     msgh.msg_name = NULL;
     msgh.msg_namelen = 0;
 
     /* On Linux, we must transmit at least 1 byte of real data in
        order to send ancillary data */
 
+    int data = (argc > optind) ? atoi(argv[optind]) : 12345;
+                    /* Data is optionally taken from command line */
+    fprintf(stderr, "Sending data = %d\n", data);
+
+    struct iovec iov;
     msgh.msg_iov = &iov;
     msgh.msg_iovlen = 1;
     iov.iov_base = &data;
-    iov.iov_len = sizeof(int);
-
-    /* Data is optionally taken from command line */
-
-    data = (argc > optind) ? atoi(argv[optind]) : 12345;
-    fprintf(stderr, "Sending data = %d\n", data);
+    iov.iov_len = sizeof(data);
 
     if (noExplicitCreds) {
 
@@ -124,7 +118,7 @@ main(int argc, char *argv[])
         /* Set message header to describe the ancillary data that
            we want to send */
 
-        cmsgp = CMSG_FIRSTHDR(&msgh);
+        struct cmsghdr *cmsgp = CMSG_FIRSTHDR(&msgh);
         cmsgp->cmsg_len = CMSG_LEN(sizeof(struct ucred));
         cmsgp->cmsg_level = SOL_SOCKET;
         cmsgp->cmsg_type = SCM_CREDENTIALS;
@@ -156,17 +150,18 @@ main(int argc, char *argv[])
 
     /* Connect to the peer socket */
 
-    sfd = unixConnect(SOCK_PATH, useDatagramSocket ? SOCK_DGRAM : SOCK_STREAM);
+    int sfd = unixConnect(SOCK_PATH,
+                          useDatagramSocket ? SOCK_DGRAM : SOCK_STREAM);
     if (sfd == -1)
         errExit("unixConnect");
 
     /* Send real plus ancillary data */
 
-    ns = sendmsg(sfd, &msgh, 0);
+    ssize_t ns = sendmsg(sfd, &msgh, 0);
     if (ns == -1)
         errExit("sendmsg");
 
-    printf("sendmsg() returned %ld\n", (long) ns);
+    printf("sendmsg() returned %zd\n", ns);
 
     exit(EXIT_SUCCESS);
 }

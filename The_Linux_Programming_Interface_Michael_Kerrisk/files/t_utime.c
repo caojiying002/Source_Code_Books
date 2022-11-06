@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -26,18 +26,16 @@
 int
 main(int argc, char *argv[])
 {
-    char *pathname;
-    struct stat sb;
-    struct utimbuf utb;
-
     if (argc != 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s file\n", argv[0]);
 
-    pathname = argv[1];
+    char *pathname = argv[1];
 
+    struct stat sb;
     if (stat(pathname, &sb) == -1)    /* Retrieve current file times */
         errExit("stat");
 
+    struct utimbuf utb;
     utb.actime = sb.st_atime;         /* Leave access time unchanged */
     utb.modtime = sb.st_atime;        /* Make modify time same as access time */
     if (utime(pathname, &utb) == -1)  /* Update file times */

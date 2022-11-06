@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -34,12 +34,6 @@
 int
 main(int argc, char *argv[])
 {
-    int data, lfd, sfd, fd, opt;
-    ssize_t nr;
-    bool useDatagramSocket;
-    struct msghdr msgh;
-    struct iovec iov;
-
     /* Allocate a char array of suitable size to hold the ancillary data.
        However, since this buffer is in reality a 'struct cmsghdr', use a
        union to ensure that it is aligned as required for that structure.
@@ -52,12 +46,11 @@ main(int argc, char *argv[])
                         /* Space large enough to hold an 'int' */
         struct cmsghdr align;
     } controlMsg;
-    struct cmsghdr *cmsgp;      /* Pointer used to iterate through
-                                   headers in ancillary data */
 
     /* Parse command-line options */
 
-    useDatagramSocket = false;
+    bool useDatagramSocket = false;
+    int opt;
 
     while ((opt = getopt(argc, argv, "d")) != -1) {
         switch (opt) {
@@ -78,13 +71,14 @@ main(int argc, char *argv[])
     if (remove(SOCK_PATH) == -1 && errno != ENOENT)
         errExit("remove-%s", SOCK_PATH);
 
+    int sfd;
     if (useDatagramSocket) {
         sfd = unixBind(SOCK_PATH, SOCK_DGRAM);
         if (sfd == -1)
             errExit("unixBind");
 
     } else {
-        lfd = unixBind(SOCK_PATH, SOCK_STREAM);
+        int lfd = unixBind(SOCK_PATH, SOCK_STREAM);
         if (lfd == -1)
             errExit("unixBind");
 
@@ -100,16 +94,20 @@ main(int argc, char *argv[])
        kernel will place the address of the peer socket. However, we don't
        need the address of the peer, so we set this field to NULL. */
 
+    struct msghdr msgh;
     msgh.msg_name = NULL;
     msgh.msg_namelen = 0;
 
-    /* Set fields of 'msgh' to point to buffer used to receive the (real)
-       data read by recvmsg() */
+    /* Set fields of 'msgh' to point to a buffer used to receive
+       the (real) data read by recvmsg() */
+
+    struct iovec iov;
+    int data;
 
     msgh.msg_iov = &iov;
     msgh.msg_iovlen = 1;
     iov.iov_base = &data;
-    iov.iov_len = sizeof(int);
+    iov.iov_len = sizeof(data);
 
     /* Set 'msgh' fields to describe the ancillary data buffer */
 
@@ -118,18 +116,19 @@ main(int argc, char *argv[])
 
     /* Receive real plus ancillary data */
 
-    nr = recvmsg(sfd, &msgh, 0);
+    ssize_t nr = recvmsg(sfd, &msgh, 0);
     if (nr == -1)
         errExit("recvmsg");
-    fprintf(stderr, "recvmsg() returned %ld\n", (long) nr);
+
+    printf("recvmsg() returned %zd\n", nr);
 
     if (nr > 0)
-        fprintf(stderr, "Received data = %d\n", data);
+        printf("Received data = %d\n", data);
 
     /* Get the address of the first 'cmsghdr' in the received
        ancillary data */
 
-    cmsgp = CMSG_FIRSTHDR(&msgh);
+    struct cmsghdr *cmsgp = CMSG_FIRSTHDR(&msgh);
 
     /* Check the validity of the 'cmsghdr' */
 
@@ -145,8 +144,9 @@ main(int argc, char *argv[])
        is typically a different file descriptor number than was used in the
        sending process.) */
 
+    int fd;
     memcpy(&fd, CMSG_DATA(cmsgp), sizeof(int));
-    fprintf(stderr, "Received FD %d\n", fd);
+    printf("Received FD %d\n", fd);
 
     /* Having obtained the file descriptor, read the file's contents and
        print them on standard output */

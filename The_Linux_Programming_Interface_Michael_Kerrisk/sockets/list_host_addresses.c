@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -29,9 +29,6 @@ int
 main(int argc, char *argv[])
 {
     struct ifaddrs *ifaddr;
-    int family, s;
-    char host[NI_MAXHOST];
-
     if (getifaddrs(&ifaddr) == -1) {
         perror("getifaddrs");
         exit(EXIT_FAILURE);
@@ -45,14 +42,16 @@ main(int argc, char *argv[])
         if (ifaddr->ifa_addr == NULL || strcmp(ifaddr->ifa_name, "lo") == 0)
             continue;
 
-        family = ifaddr->ifa_addr->sa_family;
+        int family = ifaddr->ifa_addr->sa_family;
 
         if (family != AF_INET && family != AF_INET6)
             continue;
 
         /* Display interface name and address */
 
-        s = getnameinfo(ifaddr->ifa_addr,
+        char host[NI_MAXHOST];
+
+        int s = getnameinfo(ifaddr->ifa_addr,
                     (family == AF_INET) ? sizeof(struct sockaddr_in) :
                                           sizeof(struct sockaddr_in6),
                     host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -35,20 +35,17 @@
 int
 main(int argc, char *argv[])
 {
-    char *addr;
-    int fd, j;
-
-    setbuf(stdout, NULL);
-
     if (argc != 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s file\n", argv[0]);
 
+    setbuf(stdout, NULL);
+
     unlink(argv[1]);
-    fd = open(argv[1], O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    int fd = open(argv[1], O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd == -1)
         errExit("open");
 
-    for (j = 0; j < MAP_SIZE; j++)
+    for (int j = 0; j < MAP_SIZE; j++)
         write(fd, "a", 1);
     if (fsync(fd) == -1)
         errExit("fsync");
@@ -58,7 +55,8 @@ main(int argc, char *argv[])
     if (fd == -1)
         errExit("open");
 
-    addr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+    char *addr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE,
+                      MAP_PRIVATE, fd, 0);
     if (addr == MAP_FAILED)
         errExit("mmap");
 
@@ -69,7 +67,7 @@ main(int argc, char *argv[])
     /* Copy-on-write semantics mean that the following modification
        will create private copies of the pages for this process */
 
-    for (j = 0; j < MAP_SIZE; j++)
+    for (int j = 0; j < MAP_SIZE; j++)
         addr[j]++;
 
     printf("After modification:  ");

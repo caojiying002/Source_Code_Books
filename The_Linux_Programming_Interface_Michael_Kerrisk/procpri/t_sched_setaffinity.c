@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -34,16 +34,14 @@
 int
 main(int argc, char *argv[])
 {
-    pid_t pid;
-    cpu_set_t set;
-    unsigned long mask;
 
     if (argc != 3 || strcmp(argv[1], "--help") == 0)
         usageErr("%s pid mask\n", argv[0]);
 
-    pid = getInt(argv[1], GN_NONNEG, "pid");
-    mask = getLong(argv[2], GN_ANY_BASE, "octal-mask");
+    pid_t pid = getInt(argv[1], GN_NONNEG, "pid");
+    unsigned long mask = getLong(argv[2], GN_ANY_BASE, "octal-mask");
 
+    cpu_set_t set;
     CPU_ZERO(&set);
 
     for (int cpu = 0; mask > 0; cpu++, mask >>= 1)

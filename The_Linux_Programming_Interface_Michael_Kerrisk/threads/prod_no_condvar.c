@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -19,6 +19,7 @@
 */
 #include <time.h>
 #include <pthread.h>
+#include <stdbool.h>
 #include "tlpi_hdr.h"
 
 static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
@@ -26,17 +27,16 @@ static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 static int avail = 0;
 
 static void *
-threadFunc(void *arg)
+producer(void *arg)
 {
     int cnt = atoi((char *) arg);
-    int s, j;
 
-    for (j = 0; j < cnt; j++) {
+    for (int j = 0; j < cnt; j++) {
         sleep(1);
 
         /* Code to produce a unit omitted */
 
-        s = pthread_mutex_lock(&mtx);
+        int s = pthread_mutex_lock(&mtx);
         if (s != 0)
             errExitEN(s, "pthread_mutex_lock");
 
@@ -53,34 +53,29 @@ threadFunc(void *arg)
 int
 main(int argc, char *argv[])
 {
-    pthread_t tid;
-    int s, j;
-    int totRequired;            /* Total number of units that all
+
+    time_t t = time(NULL);
+
+    int totRequired = 0;        /* Total number of units that all
                                    threads will produce */
-    int numConsumed;            /* Total units so far consumed */
-    Boolean done;
-    time_t t;
-
-    t = time(NULL);
-
     /* Create all threads */
 
-    totRequired = 0;
-    for (j = 1; j < argc; j++) {
+    for (int j = 1; j < argc; j++) {
         totRequired += atoi(argv[j]);
 
-        s = pthread_create(&tid, NULL, threadFunc, argv[j]);
+        pthread_t tid;
+        int s = pthread_create(&tid, NULL, producer, argv[j]);
         if (s != 0)
             errExitEN(s, "pthread_create");
     }
 
     /* Use a polling loop to check for available units */
 
-    numConsumed = 0;
-    done = FALSE;
+    int numConsumed = 0;        /* Total units so far consumed */
+    bool done = false;
 
     for (;;) {
-        s = pthread_mutex_lock(&mtx);
+        int s = pthread_mutex_lock(&mtx);
         if (s != 0)
             errExitEN(s, "pthread_mutex_lock");
 

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -63,10 +63,9 @@ threadFunc(void *arg)
 {
     struct epoll_event evlist[MAX_EVENTS];
     long tnum = (long) arg;
-    int ready;
 
     printf("Thread %ld about to epoll_wait()\n", tnum);
-    ready = epoll_wait(epfd, evlist, MAX_EVENTS, -1);
+    int ready = epoll_wait(epfd, evlist, MAX_EVENTS, -1);
     if (ready == -1)
         errExit("epoll_wait");
     printf("Thread %ld completed epoll_wait(); ready = %d\n", tnum, ready);
@@ -77,12 +76,7 @@ threadFunc(void *arg)
 int
 main(int argc, char *argv[])
 {
-    int s;
-    struct epoll_event ev;
-    pthread_t t1;
-    int epollet;
-
-    epollet = (argc > 1) ? EPOLLET : 0;
+    int epollet = (argc > 1) ? EPOLLET : 0;
 
     epfd = epoll_create(5);
     if (epfd == -1)
@@ -91,13 +85,15 @@ main(int argc, char *argv[])
     if (pipe(pipe1) == -1)
         errExit("pipe1");
 
+    struct epoll_event ev;
     ev.events = EPOLLIN | epollet;      /* Only interested in input events */
     ev.data.fd = pipe1[0];
     if (epoll_ctl(epfd, EPOLL_CTL_ADD, pipe1[0], &ev) == -1)
         errExit("epoll_ctl");
 
     for (long j = 0; j < 5; j++) {
-        s = pthread_create(&t1, NULL, threadFunc, (void *) j);
+        pthread_t t1;
+        int s = pthread_create(&t1, NULL, threadFunc, (void *) j);
         if (s != 0)
             errExitEN(s, "pthread_create");
     }

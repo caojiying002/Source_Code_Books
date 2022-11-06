@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -89,7 +89,7 @@ install_filter(void)
     };
 
     struct sock_fprog prog = {
-        .len = (unsigned short) (sizeof(filter) / sizeof(filter[0])),
+        .len = sizeof(filter) / sizeof(filter[0]),
         .filter = filter,
     };
 
@@ -100,8 +100,6 @@ install_filter(void)
 int
 main(int argc, char *argv[])
 {
-    int nloops;
-
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <num-loops> [x]\n", argv[0]);
         fprintf(stderr, "       (use 'x' to run with BPF filter applied)\n");
@@ -117,7 +115,7 @@ main(int argc, char *argv[])
         install_filter();
     }
 
-    nloops = atoi(argv[1]);
+    int nloops = atoi(argv[1]);
 
     for (int j = 0; j < nloops; j++)
         getppid();

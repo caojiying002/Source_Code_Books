@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -24,17 +24,17 @@
 int
 main(int argc, char *argv[])
 {
-    int fd;
-
     if (mkdir("test", S_IRUSR | S_IWUSR | S_IXUSR) == -1)
         errExit("mkdir");
     if (chdir("test") == -1)
         errExit("chdir");
-    fd = open("myfile", O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+
+    int fd = open("myfile", O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
     if (fd == -1)
         errExit("open");
     if (close(fd) == -1)
         errExit("close");
+
     if (symlink("myfile", "../mylink") == -1)
         errExit("symlink");
     if (chmod("../mylink", S_IRUSR) == -1)

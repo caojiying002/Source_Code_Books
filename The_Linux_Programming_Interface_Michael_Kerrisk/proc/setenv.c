@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -24,23 +24,21 @@ int
 unsetenv(const char *name)
 {
     extern char **environ;
-    char **ep, **sp;
-    size_t len;
 
     if (name == NULL || name[0] == '\0' || strchr(name, '=') != NULL) {
         errno = EINVAL;
         return -1;
     }
 
-    len = strlen(name);
+    size_t len = strlen(name);
 
-    for (ep = environ; *ep != NULL; )
+    for (char **ep = environ; *ep != NULL; )
         if (strncmp(*ep, name, len) == 0 && (*ep)[len] == '=') {
 
             /* Remove found entry by shifting all successive entries
                back one element */
 
-            for (sp = ep; *sp != NULL; sp++)
+            for (char **sp = ep; *sp != NULL; sp++)
                 *sp = *(sp + 1);
 
             /* Continue around the loop to further instances of 'name' */
@@ -55,8 +53,6 @@ unsetenv(const char *name)
 int
 setenv(const char *name, const char *value, int overwrite)
 {
-    char *es;
-
     if (name == NULL || name[0] == '\0' || strchr(name, '=') != NULL ||
             value == NULL) {
         errno = EINVAL;
@@ -68,7 +64,7 @@ setenv(const char *name, const char *value, int overwrite)
 
     unsetenv(name);             /* Remove all occurrences */
 
-    es = malloc(strlen(name) + strlen(value) + 2);
+    char *es = malloc(strlen(name) + strlen(value) + 2);
                                 /* +2 for '=' and null terminator */
     if (es == NULL)
         return -1;

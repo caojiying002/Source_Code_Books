@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU Lesser General Public License as published   *
@@ -31,17 +31,14 @@
 void
 display_creds_and_caps(char *str)
 {
-    cap_t caps;
-    char *s;
-
-    printf("%seUID = %ld; eGID=%ld;  ", str,
+    printf("%seUID = %ld; eGID = %ld;  ", str,
             (long) geteuid(), (long) getegid());
 
-    caps = cap_get_proc();
+    cap_t caps = cap_get_proc();
     if (caps == NULL)
         errExit("cap_get_proc");
 
-    s = cap_to_text(caps, NULL);
+    char *s = cap_to_text(caps, NULL);
     if (s == NULL)
         errExit("cap_to_text");
     printf("capabilities: %s\n", s);
@@ -67,24 +64,20 @@ display_creds_and_caps(char *str)
 int
 update_map(char *mapping, char *map_file)
 {
-    int fd;
-    size_t map_len;     /* Length of 'mapping' */
-    int status;
-
     /* Replace commas in mapping string with newlines */
 
-    map_len = strlen(mapping);
+    size_t map_len = strlen(mapping);
     for (int j = 0; j < map_len; j++)
         if (mapping[j] == ',')
             mapping[j] = '\n';
 
-    fd = open(map_file, O_RDWR);
+    int fd = open(map_file, O_RDWR);
     if (fd == -1) {
         fprintf(stderr, "ERROR: open %s: %s\n", map_file, strerror(errno));
         return -1;
     }
 
-    status = 0;
+    int status = 0;
 
     if (write(fd, mapping, map_len) != map_len) {
         fprintf(stderr, "ERROR: writing to %s: %s\n",
@@ -118,13 +111,11 @@ int
 proc_setgroups_write(pid_t child_pid, char *str)
 {
     char setgroups_path[PATH_MAX];
-    int fd;
-    int status;
 
     snprintf(setgroups_path, PATH_MAX, "/proc/%ld/setgroups",
             (long) child_pid);
 
-    fd = open(setgroups_path, O_RDWR);
+    int fd = open(setgroups_path, O_RDWR);
     if (fd == -1) {
 
         /* We may be on a system that doesn't support /proc/PID/setgroups.
@@ -144,7 +135,7 @@ proc_setgroups_write(pid_t child_pid, char *str)
         }
     }
 
-    status = 0;
+    int status = 0;
 
     if (write(fd, str, strlen(str)) == -1) {
         fprintf(stderr, "ERROR: writing to %s: %s\n", setgroups_path,

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -22,19 +22,16 @@
 int
 main(int argc, char *argv[])
 {
-    struct servent *s;
-    char **pp;
-
     if (argc < 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s service [protocol]\n", argv[0]);
 
-    s = getservbyname(argv[1], argv[2]);
+    struct servent *s = getservbyname(argv[1], argv[2]);
     if (s == NULL)
         fatal("getservbyname() could not find a matching record");
 
     printf("Official name: %s\n", s->s_name);
     printf("Aliases:      ");
-    for (pp = s->s_aliases; *pp != NULL; pp++)
+    for (char **pp = s->s_aliases; *pp != NULL; pp++)
         printf(" %s", *pp);
     printf("\n");
     printf("Port:          %u\n", ntohs(s->s_port));

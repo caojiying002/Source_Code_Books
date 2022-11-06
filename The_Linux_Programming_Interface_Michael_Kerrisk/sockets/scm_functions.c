@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU Lesser General Public License as published   *
@@ -30,11 +30,6 @@
 int
 sendfd(int sockfd, int fd)
 {
-    struct msghdr msgh;
-    struct iovec iov;
-    int data;
-    struct cmsghdr *cmsgp;
-
     /* Allocate a char array of suitable size to hold the ancillary data.
        However, since this buffer is in reality a 'struct cmsghdr', use a
        union to ensure that it is aligned as required for that structure.
@@ -53,12 +48,16 @@ sendfd(int sockfd, int fd)
        need to use this field because we presume that 'sockfd' is a
        connected socket. */
 
+    struct msghdr msgh;
     msgh.msg_name = NULL;
     msgh.msg_namelen = 0;
 
     /* On Linux, we must transmit at least one byte of real data in
        order to send ancillary data. We transmit an arbitrary integer
        whose value is ignored by recvfd(). */
+
+    struct iovec iov;
+    int data;
 
     msgh.msg_iov = &iov;
     msgh.msg_iovlen = 1;
@@ -73,6 +72,7 @@ sendfd(int sockfd, int fd)
 
     /* Set up ancillary data describing file descriptor to send */
 
+    struct cmsghdr *cmsgp;
     cmsgp = CMSG_FIRSTHDR(&msgh);
     cmsgp->cmsg_level = SOL_SOCKET;
     cmsgp->cmsg_type = SCM_RIGHTS;

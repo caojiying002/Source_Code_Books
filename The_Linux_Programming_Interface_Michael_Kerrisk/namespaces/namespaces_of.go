@@ -167,10 +167,31 @@ var namespaceMap = map[int]string{
 	CLONE_NEWUTS:    "uts",
 }
 
+// 'namespaceMap' was initialized with a list of all of the currently known
+// namespace symlink names. However, we might be running on an older kernel
+// that does not know about some newer namespaces (e.g., time namespaces). So,
+// we build a list of the namespace symlinks that are actually available on
+// this system by checking the names in 'namespaceMap' against what exists in
+// /proc/self/ns to build the subset of namespace symlinks that actually exist
+// on this system.
+
+func getActualNamespaceSymlinkNames() []string {
+	var res = []string{}
+
+	for _, nsFile := range namespaceMap {
+		if _, err := os.Stat("/proc/self/ns/" + nsFile); err == nil {
+			res = append(res, nsFile)
+		}
+	}
+
+	sort.Strings(res)
+	return res
+}
+
 // The set of the namespace symlink files in the /proc/PID/ns
 // directory that actually exist on this running kernel.
 
-var namespaceSymlinkNames []string
+var namespaceSymlinkNames []string = getActualNamespaceSymlinkNames()
 
 // Define some terminal escape sequences for displaying color output.
 
@@ -1015,33 +1036,11 @@ func (nsi *NamespaceInfo) addUidGidPMaps() {
 	}
 }
 
-// 'namespaceMap' was initialized with a list of all of the currently known
-// namespace symlink names. However, we might be running on an older kernel
-// that does not know about some newer namespaces (e.g., time namespaces). So,
-// we build a list of the namespace symlinks that are actually available on
-// this system by checking the names in 'namespaceMap' against what exists in
-// /proc/self/ns to build the subset of namespace symlinks that actually exist
-// on this system.
-
-func getActuaNamespaceSymlinkNames() []string {
-	var res = []string{}
-
-	for _, nsFile := range namespaceMap {
-		if _, err := os.Stat("/proc/self/ns/" + nsFile); err == nil {
-			res = append(res, nsFile)
-		}
-	}
-
-	return res
-}
-
 func main() {
 
 	var nsi = NamespaceInfo{nsList: make(NamespaceList)}
 
 	var opts CmdLineOptions = parseCmdLineOptions()
-
-	namespaceSymlinkNames = getActuaNamespaceSymlinkNames()
 
 	// Determine which namespace symlink files are to be processed.
 	// (By default, all namespaces are processed, but this can be

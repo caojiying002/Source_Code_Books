@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -44,9 +44,8 @@ static void
 display_symlink(char *pname, char *link)
 {
     char path[PATH_MAX];
-    ssize_t s;
 
-    s = readlink(link, path, PATH_MAX);
+    ssize_t s = readlink(link, path, PATH_MAX);
     if (s == -1)
         errExit("readlink");
 
@@ -61,14 +60,14 @@ display_symlink(char *pname, char *link)
 static void
 test_setns(char *pname, int fd)
 {
-
     display_symlink(pname, "/proc/self/ns/user");
 
     /* Attempt to join the user namespace specified by 'fd' */
 
-    if (setns(fd, CLONE_NEWUSER) == -1)
+    display_creds_and_caps(pname);
+    if (setns(fd, CLONE_NEWUSER) == -1) {
         printf("%ssetns() failed: %s\n", pname, strerror(errno));
-    else {
+    } else {
         printf("%ssetns() succeeded\n", pname);
         display_symlink(pname, "/proc/self/ns/user");
         display_creds_and_caps(pname);
@@ -94,10 +93,6 @@ childFunc(void *arg)
 int
 main(int argc, char *argv[])
 {
-    pid_t child_pid;
-    long fd;
-    char *stack;
-
     if (argc != 2) {
         fprintf(stderr, "Usage: %s /proc/PID/ns/user\n", argv[0]);
         exit(EXIT_FAILURE);
@@ -105,20 +100,19 @@ main(int argc, char *argv[])
 
     /* Open user namespace file specified on command line */
 
-    fd = open(argv[1], O_RDONLY);
+    long fd = open(argv[1], O_RDONLY);
     if (fd == -1)
         errExit("open");
 
     /* Create child process in new user namespace */
 
-    stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
-                 MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+    char *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
     if (stack == MAP_FAILED)
         errExit("mmap");
 
-    child_pid = clone(childFunc,
-                      stack + STACK_SIZE, /* Assume stack grows downward */
-                      CLONE_NEWUSER | SIGCHLD, (void *) fd);
+    pid_t child_pid = clone(childFunc, stack + STACK_SIZE,
+                            CLONE_NEWUSER | SIGCHLD, (void *) fd);
     if (child_pid == -1)
         errExit("clone");
 

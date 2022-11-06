@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -26,18 +26,15 @@
 int
 main(int argc, char *argv[])
 {
-    cap_t caps;
-    char *s;
-
     for (;;) {
-        caps = cap_get_proc();
+        cap_t caps = cap_get_proc();
         if (caps == NULL)
             errExit("cap_get_proc");
 
         printf("eUID = %ld;  eGID = %ld;  ",
                 (long) geteuid(), (long) getegid());
 
-        s = cap_to_text(caps, NULL);
+        char *s = cap_to_text(caps, NULL);
         if (s == NULL)
             errExit("cap_to_text");
         printf("capabilities: %s\n", s);

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -35,36 +35,37 @@
 static void
 burnCPU(float period)
 {
-    int curr_step;      /* Current number of intervals of consumed CPU time */
-    int prev_step;      /* Number of intervals of consumed CPU time calculated
-                           in previous loop iteration */
-    struct timespec curr_cpu;
-    struct timespec curr_rt, prev_rt;
-    int elapsed_rt_us;  /* Elapsed real microseconds for current CPU interval */
-
-    prev_step = 0;
-
+    struct timespec prev_rt;
     if (clock_gettime(CLOCK_REALTIME, &prev_rt) == -1)
         errExit("clock_gettime");
 
+    int prev_step = 0;  /* Number of intervals of consumed CPU time calculated
+                           in previous loop iteration */
+
     while (1) {
+        struct timespec curr_cpu;
         if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &curr_cpu) == -1)
             errExit("clock_gettime");
 
-        curr_step = curr_cpu.tv_sec / period + curr_cpu.tv_nsec / period / NANO;
+        /* Calculate current number of intervals of consumed CPU time */
 
+        int curr_step = curr_cpu.tv_sec / period +
+                        curr_cpu.tv_nsec / period / NANO;
+
+        struct timespec curr_rt;
         if (clock_gettime(CLOCK_REALTIME, &curr_rt) == -1)
             errExit("clock_gettime");
 
-        elapsed_rt_us = (curr_rt.tv_sec - prev_rt.tv_sec) * 1000000 +
+        /* Calculate elapsed real microseconds for current CPU interval */
+
+        int elapsed_rt_us = (curr_rt.tv_sec - prev_rt.tv_sec) * 1000000 +
                      (curr_rt.tv_nsec - prev_rt.tv_nsec) / 1000;
 
         if (curr_step > prev_step) {
-            printf("[%ld]  CPU: %.3f; elapsed/cpu = %0.3f; %%CPU = %.3f\n",
+            printf("[%ld]  %%CPU = %.2f; totCPU = %.3f\n",
                     (long) getpid(),
-                    (float) curr_step * period,
-                    elapsed_rt_us / 1000000.0 / period,
-                    period / (elapsed_rt_us / 1000000.0) * 100.0);
+                    period / (elapsed_rt_us / 1000000.0) * 100.0,
+                    (float) curr_step * period);
             prev_step = curr_step;
             prev_rt = curr_rt;
         }
@@ -74,18 +75,16 @@ burnCPU(float period)
 int
 main(int argc, char *argv[])
 {
-    float period;
-    int nproc;
-
     if (argc < 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s [period]...\n"
                 "Creates one process per argument that reports "
                 "CPU time each 'period' CPU seconds\n"
                 "'period' can be a floating-point number\n", argv[0]);
 
-    nproc = argc - 1;
+    int nproc = argc - 1;
 
     for (int j = 0; j < nproc; j++) {
+        float period;
 
         switch (fork()) {
         case 0:

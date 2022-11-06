@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -74,9 +74,6 @@ handleRequest(int cfd)
 int
 main(int argc, char *argv[])
 {
-    int lfd, cfd;               /* Listening and connected sockets */
-    struct sigaction sa;
-
     /* The "-i" option means we were invoked from inetd(8), so that
        all we need to do is handle the connection on STDIN_FILENO */
 
@@ -88,6 +85,7 @@ main(int argc, char *argv[])
     if (becomeDaemon(0) == -1)
         errExit("becomeDaemon");
 
+    struct sigaction sa;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
     sa.sa_handler = grimReaper;
@@ -96,14 +94,14 @@ main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    lfd = inetListen(SERVICE, 10, NULL);
+    int lfd = inetListen(SERVICE, 10, NULL);
     if (lfd == -1) {
         syslog(LOG_ERR, "Could not create server socket (%s)", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     for (;;) {
-        cfd = accept(lfd, NULL, NULL);  /* Wait for connection */
+        int cfd = accept(lfd, NULL, NULL);      /* Wait for connection */
         if (cfd == -1) {
             syslog(LOG_ERR, "Failure in accept(): %s",
                     strerror(errno));
@@ -120,7 +118,7 @@ main(int argc, char *argv[])
         case 0:                 /* Child */
             close(lfd);         /* Don't need copy of listening socket */
             handleRequest(cfd);
-            _exit(EXIT_SUCCESS);
+            exit(EXIT_SUCCESS);
 
         default:                /* Parent */
             close(cfd);         /* Don't need copy of connected socket */

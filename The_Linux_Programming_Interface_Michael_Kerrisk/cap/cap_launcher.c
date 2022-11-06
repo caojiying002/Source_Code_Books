@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -14,35 +14,78 @@
 
    Launch a program with the credentials (UIDs, GIDs, supplementary GIDs)
    of a specified user, and with the capabilities specified on the
-   command line.  The program relies on the use of ambient capabilities,
-   a feature that first appeared in Linux 4.3.
+   command line.
+
+   In its default mode of operation, the program relies on the use of ambient
+   capabilities, a feature that first appeared in Linux 4.3. In this case,
+   the program to be launched should be an unprivileged program (i.e., not a
+   set-UID program, a set-GID program, or program with capabilities attached).
+   This is so, because ambient capabilities are ignored (discarded) when
+   execing a privileged program.
+
+   If the -A option is specified, then this program raises the specified
+   capabilities only in the process inheritable set (and not in the ambient
+   set) before launching the specified program. In this case, the program
+   that is to be launched should have the corresponding file inheritable
+   capabilities enabled.
 */
-#define _GNU_SOURCE         /* See feature_test_macros(7) */
-#include <string.h>
-#include <unistd.h>
+#define _GNU_SOURCE             /* See feature_test_macros(7) */
 #include <sys/prctl.h>
 #include <sys/capability.h>
 #include <linux/securebits.h>
-#include <sys/types.h>
 #include <pwd.h>
 #include <grp.h>
-#include <stdio.h>
-#include <errno.h>
-#include <stdlib.h>
-#include "cap_functions.h"
+#include "cap_functions.h"      /* Defines modifyCapSetting() */
 #include "tlpi_hdr.h"
 
 static void
 usage(char *pname)
 {
-    fprintf(stderr, "Usage: %s user cap,... cmd arg...\n", pname);
-    fprintf(stderr, "\t'user' is the user with whose credentials\n");
-    fprintf(stderr, "\t\tthe program is to be launched\n");
-    fprintf(stderr, "\t'cap,...' is the set of capabilities with which\n");
-    fprintf(stderr, "\t\tthe program is to be launched\n");
-    fprintf(stderr, "\t'cmd' and 'arg...' specify the command plus\n");
+    fprintf(stderr, "Usage: %s [-A] user cap,... cmd arg...\n", pname);
+    fprintf(stderr, "\t'user' is the user with whose credentials the\n");
+    fprintf(stderr, "\t\tprogram is to be launched\n");
+    fprintf(stderr, "\t'cap,...' is the set of capabilities with which the\n");
+    fprintf(stderr, "\t\tprogram is to be launched\n");
+    fprintf(stderr, "\t'cmd' and 'arg...' specify the command plus "
+                    "arguments\n");
     fprintf(stderr, "\t\tfor the program that is to be launched\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\tOptions:\n");
+    fprintf(stderr, "\t    -A  Raise the specified capabilities only in the "
+                    "inheritable set\n");
+    fprintf(stderr, "\t\t(and not in ambient set) before launching 'cmd'\n");
     exit(EXIT_FAILURE);
+}
+
+/* Set the supplementary group list, based on the groups recorded for 'user'
+   in /etc/group. */
+
+static void
+setSupplementaryGroupList(char *user, gid_t gid)
+{
+    /* Find out how many supplementary groups the user is a member of */
+
+    int ngroups = 0;
+    getgrouplist(user, gid, NULL, &ngroups);
+
+    /* Allocate an array for supplementary group IDs */
+
+    gid_t *groups = calloc(ngroups, sizeof(gid_t));
+    if (groups == NULL)
+        errExit("calloc");
+
+    /* Get supplementary group list of 'user' from the group database.
+       In addition, 'gid' (the user's primary GID, which was obtained
+       from /etc/passwd) is also added to the list if it is not otherwise
+       present. */
+
+    if (getgrouplist(user, gid, groups, &ngroups) == -1)
+        errExit("getgrouplist");
+
+    /* Set the supplementary group list */
+
+    if (setgroups(ngroups, groups) == -1)
+        errExit("setgroups");
 }
 
 /* Switch credentials (user ID, group ID, supplementary groups) to
@@ -51,38 +94,15 @@ usage(char *pname)
 static void
 setCredentials(char *user)
 {
-    struct passwd *pwd;
-    int ngroups;
-    gid_t *groups;
-
     /* Look up user in user database */
 
-    pwd = getpwnam(user);
+    struct passwd *pwd = getpwnam(user);
     if (pwd == NULL) {
         fprintf(stderr, "Unknown user: %s\n", user);
         exit(EXIT_FAILURE);
     }
 
-    /* Find out how many supplementary groups the user is a member of */
-
-    ngroups = 0;
-    getgrouplist(user, pwd->pw_gid, NULL, &ngroups);
-
-    /* Allocate an array for supplementary group IDs */
-
-    groups = calloc(ngroups, sizeof(gid_t));
-    if (groups == NULL)
-        errExit("calloc");
-
-    /* Get supplementary group list of 'user' from group database */
-
-    if (getgrouplist(user, pwd->pw_gid, groups, &ngroups) == -1)
-        errExit("getgrouplist");
-
-    /* Set the supplementary group list */
-
-    if (setgroups(ngroups, groups) == -1)
-        errExit("setgroups");
+    setSupplementaryGroupList(user, pwd->pw_gid);
 
     /* Set all group IDs to GID of this user */
 
@@ -95,67 +115,96 @@ setCredentials(char *user)
         errExit("setresuid");
 }
 
-/* Add a set of capabilities to the process's ambient list */
-
-static void
-setAmbientCapabilities(char *capList)
+static cap_value_t
+capFromName(char *p)
 {
     cap_value_t cap;
+    if (cap_from_name(p, &cap) == -1) {
+        fprintf(stderr, "Unrecognized capability name: %s\n", p);
+        exit(EXIT_FAILURE);
+    }
 
-    /* Walk through the capabilities listed in the comma-delimited list
-       of capability names in 'capList', adding each capability to the
-       ambient set. This will cause the capability to pass into the
-       process permitted and effective sets during exec(). */
+    return cap;
+}
 
-    for (char *p = capList; (p = strtok(p, ",")); p = NULL) {
+/* Raise a single capability in the process inheritable set and optionally
+   also in the ambient set */
 
-        /* Convert the capability name to a capability number */
+static void
+raiseCap(cap_value_t cap, char *capName, bool raiseAmbient)
+{
+    /* Raise the capability in the inheritable set */
 
-        if (cap_from_name(p, &cap) == -1) {
-            fprintf(stderr, "Unrecognized capability name: %s\n", p);
-            exit(EXIT_FAILURE);
-        }
+    if (modifyCapSetting(CAP_INHERITABLE, cap, CAP_SET) == -1) {
+        fprintf(stderr, "Could not raise '%s' inheritable "
+                "capability (%s)\n", capName, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 
-        /* In order to place a capability into the ambient set,
-           that capability must also be in the inheritable set */
-
-        if (modifyCapSetting(CAP_INHERITABLE, cap, CAP_SET) == -1) {
-            fprintf(stderr, "Could not raise '%s' inheritable "
-                    "capability (%s)\n", p, strerror(errno));
-            exit(EXIT_FAILURE);
-        }
+    if (raiseAmbient) {
 
         /* Raise the capability in the ambient set */
 
         if (prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE, cap, 0, 0) == -1) {
             fprintf(stderr, "Could not raise '%s' ambient "
-                    "capability (%s)\n", p, strerror(errno));
+                    "capability (%s)\n", capName, strerror(errno));
             exit(EXIT_FAILURE);
         }
+    }
+}
+
+/* Add a set of capabilities to the process inheritable set
+   and optionally also to the ambient set */
+
+static void
+raiseInheritableAndAmbientCaps(char *capList, bool raiseAmbient)
+{
+    /* Walk through the capabilities listed in the comma-delimited list
+       of capability names in 'capList'. */
+
+    for (char *capName = capList; (capName = strtok(capName, ","));
+            capName = NULL) {
+        cap_value_t cap = capFromName(capName);
+        raiseCap(cap, capName, raiseAmbient);
     }
 }
 
 int
 main(int argc, char *argv[])
 {
-    if (argc < 4 || strcmp(argv[1], "--help") == 0)
+    bool raiseAmbient = true;
+    int opt;
+
+    while ((opt = getopt(argc, argv, "A")) != -1) {
+        switch (opt) {
+        case 'A':
+            raiseAmbient = false;
+            break;
+        default:
+            fprintf(stderr, "Bad option\n");
+            usage(argv[0]);
+            break;
+        }
+    }
+    if (argc < optind + 3)
         usage(argv[0]);
 
     if (geteuid() != 0)
         fatal("Must be run as root");
 
-    /* Set "no setuid fixup" securebit so that when we switch to
+    /* Set the "no setuid fixup" securebit, so that when we switch to
        a nonzero UID, we don't lose capabilities */
 
     if (prctl(PR_SET_SECUREBITS, SECBIT_NO_SETUID_FIXUP, 0, 0, 0) == -1)
         errExit("prctl");
 
-    setCredentials(argv[1]);
+    setCredentials(argv[optind]);
 
-    setAmbientCapabilities(argv[2]);
+    raiseInheritableAndAmbientCaps(argv[optind + 1], raiseAmbient);
 
-    /* Execute the program (with arguments) named in argv[3]... */
+    /* Execute the program (with arguments) named in the remainder of the
+       command-line */
 
-    execvp(argv[3], &argv[3]);
+    execvp(argv[optind + 2], &argv[optind + 2]);
     errExit("execvp");
 }

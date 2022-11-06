@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -39,14 +39,13 @@ usage(char *pname)
 int
 main(int argc, char *argv[])
 {
-    int newuid, newgid, verbose, opt;
-
     /* Parse command-line options */
 
-    newuid = -1;
-    newgid = -1;
-    verbose = 0;
-    while ((opt = getopt(argc, argv, "g:u:v")) != -1) {
+    uid_t newuid = -1;
+    gid_t newgid = -1;
+    int verbose = 0;
+    int opt;
+    while ((opt = getopt(argc, argv, "+g:u:v")) != -1) {
         switch (opt) {
         case 'g': newgid = atoi(optarg);        break;
         case 'u': newuid = atoi(optarg);        break;

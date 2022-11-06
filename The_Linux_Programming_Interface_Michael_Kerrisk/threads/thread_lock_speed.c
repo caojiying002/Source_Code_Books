@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -33,12 +33,13 @@
    small "inner loop" value), spin locks are likely to be better.
 */
 #include <pthread.h>
+#include <stdbool.h>
 #include "tlpi_hdr.h"
 
 static volatile int glob = 0;
 static pthread_spinlock_t splock;
 static pthread_mutex_t mtx;
-static int useMutex = 0;
+static bool useMutex;
 static int numOuterLoops;
 static int numInnerLoops;
 
@@ -91,24 +92,20 @@ usageError(char *pname)
 int
 main(int argc, char *argv[])
 {
-    int opt, s;
-    int numThreads;
-    pthread_t *thread;
-    int verbose;
-
     /* Prevent runaway/forgotten process from burning up CPU time forever */
 
     alarm(120);         /* Unhandled SIGALRM will kill process */
 
-    useMutex = 1;
-    verbose = 1;
+    useMutex = true;
+    bool verbose = true;
+    int opt;
     while ((opt = getopt(argc, argv, "qs")) != -1) {
         switch (opt) {
         case 'q':
-            verbose = 0;
+            verbose = false;
             break;
         case 's':
-            useMutex = 0;
+            useMutex = false;
             break;
         default:
             usageError(argv[0]);
@@ -118,7 +115,7 @@ main(int argc, char *argv[])
     if (optind >= argc)
         usageError(argv[0]);
 
-    numThreads = atoi(argv[optind]);
+    int numThreads = atoi(argv[optind]);
     numInnerLoops = (optind + 1 < argc) ? atoi(argv[optind + 1]) : 1;
     numOuterLoops = (optind + 2 < argc) ? atoi(argv[optind + 2]) : 10000000;
 
@@ -128,9 +125,11 @@ main(int argc, char *argv[])
                 numThreads, numOuterLoops, numInnerLoops);
     }
 
-    thread = calloc(numThreads, sizeof(pthread_t));
+    pthread_t *thread = calloc(numThreads, sizeof(pthread_t));
     if (thread == NULL)
         errExit("calloc");
+
+    int s;
 
     if (useMutex) {
         s = pthread_mutex_init(&mtx, NULL);

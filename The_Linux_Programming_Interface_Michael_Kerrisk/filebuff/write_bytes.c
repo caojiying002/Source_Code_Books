@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -35,30 +35,27 @@
 int
 main(int argc, char *argv[])
 {
-    size_t bufSize, numBytes, thisWrite, totWritten;
-    char *buf;
-    int fd, openFlags;
-
     if (argc != 4 || strcmp(argv[1], "--help") == 0)
         usageErr("%s file num-bytes buf-size\n", argv[0]);
 
-    numBytes = getLong(argv[2], GN_GT_0, "num-bytes");
-    bufSize = getLong(argv[3], GN_GT_0, "buf-size");
+    size_t numBytes = getLong(argv[2], GN_GT_0, "num-bytes");
+    size_t bufSize = getLong(argv[3], GN_GT_0, "buf-size");
 
-    buf = malloc(bufSize);
+    char *buf = malloc(bufSize);
     if (buf == NULL)
         errExit("malloc");
 
-    openFlags = O_CREAT | O_WRONLY;
+    int openFlags = O_CREAT | O_WRONLY;
 
 #if defined(USE_O_SYNC) && defined(O_SYNC)
     openFlags |= O_SYNC;
 #endif
 
-    fd = open(argv[1], openFlags, S_IRUSR | S_IWUSR);
+    int fd = open(argv[1], openFlags, S_IRUSR | S_IWUSR);
     if (fd == -1)
         errExit("open");
 
+    size_t thisWrite, totWritten;
     for (totWritten = 0; totWritten < numBytes;
             totWritten += thisWrite) {
         thisWrite = min(bufSize, numBytes - totWritten);

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -34,32 +34,27 @@
 int
 main(int argc, char *argv[])
 {
-    struct sigevent sev;
-    mqd_t mqd;
-    struct mq_attr attr;
-    void *buffer;
-    ssize_t numRead;
-    sigset_t blockMask;
-    siginfo_t si;
-
     if (argc != 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s mq-name\n", argv[0]);
 
-    mqd = mq_open(argv[1], O_RDONLY | O_NONBLOCK);
+    mqd_t mqd = mq_open(argv[1], O_RDONLY | O_NONBLOCK);
     if (mqd == (mqd_t) -1)
         errExit("mq_open");
 
     /* Determine mq_msgsize for message queue, and allocate an input buffer
        of that size */
 
+    struct mq_attr attr;
     if (mq_getattr(mqd, &attr) == -1)
         errExit("mq_getattr");
-    buffer = malloc(attr.mq_msgsize);
+
+    void *buffer = malloc(attr.mq_msgsize);
     if (buffer == NULL)
         errExit("malloc");
 
     /* Block the signal that we'll accept using sigwaitinfo() */
 
+    sigset_t blockMask;
     sigemptyset(&blockMask);
     sigaddset(&blockMask, NOTIFY_SIG);
     if (sigprocmask(SIG_BLOCK, &blockMask, NULL) == -1)
@@ -67,6 +62,7 @@ main(int argc, char *argv[])
 
     /* Set up message notification using the signal NOTIFY_SIG */
 
+    struct sigevent sev;
     sev.sigev_notify = SIGEV_SIGNAL;
     sev.sigev_signo = NOTIFY_SIG;
     sev.sigev_value.sival_ptr = &mqd;
@@ -81,6 +77,7 @@ main(int argc, char *argv[])
         /* Wait for a signal; when it is received, display associated
            information */
 
+        siginfo_t si;
         if (sigwaitinfo(&blockMask, &si) == -1)
             errExit("sigwaitinfo");
 
@@ -102,6 +99,7 @@ main(int argc, char *argv[])
            so use nonblocking mq_receive() calls inside a loop to read
            as many messages as possible. */
 
+        ssize_t numRead;
         while ((numRead = mq_receive(mqd, buffer, attr.mq_msgsize, NULL)) >= 0)
             printf("Read %ld bytes\n", (long) numRead);
 

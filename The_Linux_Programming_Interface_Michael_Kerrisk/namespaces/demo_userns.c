@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -34,18 +34,16 @@
 static int                      /* Startup function for cloned child */
 childFunc(void *arg)
 {
-    cap_t caps;
-    char *str;
 
     for (;;) {
         printf("eUID = %ld; eGID = %ld; ",
                 (long) geteuid(), (long) getegid());
 
-        caps = cap_get_proc();
+        cap_t caps = cap_get_proc();
         if (caps == NULL)
             errExit("cap_get_proc");
 
-        str = cap_to_text(caps, NULL);
+        char *str = cap_to_text(caps, NULL);
         if (str == NULL)
             errExit("cap_to_text");
 
@@ -68,19 +66,16 @@ childFunc(void *arg)
 int
 main(int argc, char *argv[])
 {
-    pid_t pid;
-    char *stack;
-
-    stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+    char *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
                  MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
     if (stack == MAP_FAILED)
         errExit("mmap");
 
     /* Create child; child commences execution in childFunc() */
 
-    pid = clone(childFunc,
-                stack + STACK_SIZE,     /* Assume stack grows downward */
-                CLONE_NEWUSER | SIGCHLD, argv[1]);
+    pid_t pid = clone(childFunc,
+                    stack + STACK_SIZE, /* Assume stack grows downward */
+                    CLONE_NEWUSER | SIGCHLD, argv[1]);
     if (pid == -1)
         errExit("clone");
 

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -24,15 +24,14 @@
 int
 main(int argc, char *argv[])
 {
-    int sfd;
-    ssize_t numRead;
-    char buf[BUF_SIZE];
-
-    sfd = unixConnect(SV_SOCK_PATH, SOCK_STREAM);
+    int sfd = unixConnect(SV_SOCK_PATH, SOCK_STREAM);
     if (sfd == -1)
         errExit("unixConnect");
 
     /* Copy stdin to socket */
+
+    ssize_t numRead;
+    char buf[BUF_SIZE];
 
     while ((numRead = read(STDIN_FILENO, buf, BUF_SIZE)) > 0)
         if (write(sfd, buf, numRead) != numRead)
@@ -40,5 +39,6 @@ main(int argc, char *argv[])
 
     if (numRead == -1)
         errExit("read");
+
     exit(EXIT_SUCCESS);     /* Closes our socket; server sees EOF */
 }

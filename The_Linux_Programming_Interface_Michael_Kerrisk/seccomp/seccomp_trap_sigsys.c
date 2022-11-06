@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -69,7 +69,7 @@ install_filter(void)
     };
 
     struct sock_fprog prog = {
-        .len = (unsigned short) (sizeof(filter) / sizeof(filter[0])),
+        .len = sizeof(filter) / sizeof(filter[0]),
         .filter = filter,
     };
 
@@ -88,10 +88,8 @@ sigHandler(int sig)
 }
 
 int
-main(int argc, char **argv)
+main(int argc, char *argv[])
 {
-    struct sigaction sa;
-
     /* Set up seccomp filter */
 
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0))
@@ -101,6 +99,7 @@ main(int argc, char **argv)
 
     /* Establish handler for SIGSYS */
 
+    struct sigaction sa;
     sa.sa_flags = 0;
     sa.sa_handler = sigHandler;
     sigemptyset(&sa.sa_mask);

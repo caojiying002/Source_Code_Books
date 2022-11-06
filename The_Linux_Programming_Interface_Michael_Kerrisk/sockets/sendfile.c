@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -21,8 +21,6 @@ ssize_t
 sendfile(int out_fd, int in_fd, off_t *offset, size_t count)
 {
     off_t orig;
-    char buf[BUF_SIZE];
-    size_t toRead, numRead, numSent, totSent;
 
     if (offset != NULL) {
 
@@ -35,18 +33,19 @@ sendfile(int out_fd, int in_fd, off_t *offset, size_t count)
             return -1;
     }
 
-    totSent = 0;
+    size_t totSent = 0;
 
     while (count > 0) {
-        toRead = min(BUF_SIZE, count);
+        size_t toRead = min(BUF_SIZE, count);
 
-        numRead = read(in_fd, buf, toRead);
+        char buf[BUF_SIZE];
+        ssize_t numRead = read(in_fd, buf, toRead);
         if (numRead == -1)
             return -1;
         if (numRead == 0)
             break;                      /* EOF */
 
-        numSent = write(out_fd, buf, numRead);
+        ssize_t numSent = write(out_fd, buf, numRead);
         if (numSent == -1)
             return -1;
         if (numSent == 0)               /* Should never happen */

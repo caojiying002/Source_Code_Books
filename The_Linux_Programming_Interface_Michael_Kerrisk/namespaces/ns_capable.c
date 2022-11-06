@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -51,14 +51,11 @@
 static void
 display_process_capabilities(pid_t pid)
 {
-    cap_t caps;
-    char *cap_string;
-
-    caps = cap_get_pid(pid);
+    cap_t caps = cap_get_pid(pid);
     if (caps == NULL)
         errExit("cap_get_proc");
 
-    cap_string = cap_to_text(caps, NULL);
+    char *cap_string = cap_to_text(caps, NULL);
     if (cap_string == NULL)
         errExit("cap_to_text");
 
@@ -75,17 +72,16 @@ static uid_t
 euid_of_process(pid_t pid)
 {
     char path[PATH_MAX];
-    char line[1024];
-    int uid;
-    FILE *fp;
 
     snprintf(path, sizeof(path), "/proc/%ld/status", (long) pid);
 
-    fp = fopen(path, "r");
+    FILE *fp = fopen(path, "r");
     if (fp == NULL)
         errExit("fopen-/proc/PID/status");
 
     for (;;) {
+        char line[1024];
+
         if (fgets(line, sizeof(line), fp) == NULL) {
 
             /* We reached EOF without finding "Uid:" record (should never
@@ -95,6 +91,7 @@ euid_of_process(pid_t pid)
             exit(EXIT_FAILURE);
         }
 
+        int uid;
         if (strstr(line, "Uid:") == line) {
             sscanf(line, "Uid: %*d %d %*d %*d", &uid);
             fclose(fp);
@@ -174,17 +171,15 @@ uid_of_userns_owner(int userns_fd)
 static int
 is_ancestor_userns(int fd_x, int fd_y)
 {
-    int parent, child;  /* File descriptors that refer to namespaces */
-
     /* Starting at the parent of the user namespace referred to by
        'fd_y', we walk upward through the chain of ancestor namespaces
        until we can traverse no further, or until we find a namespace
        that is the same as the one referred to by 'fd_x'. */
 
-    child = fd_y;
+    int child = fd_y;
 
     for (;;) {
-        parent = ioctl(child, NS_GET_PARENT);
+        int parent = ioctl(child, NS_GET_PARENT);
 
         if (parent == -1) {
 
@@ -220,25 +215,18 @@ is_ancestor_userns(int fd_x, int fd_y)
 int
 main(int argc, char *argv[])
 {
-    char *pid_str;      /* PID from command line */
-    pid_t pid;          /* That PID converted to numeric form */
-    int target_ns;      /* FD referring to target NS (from command line) */
-    int target_userns;  /* FD referring to user NS that owns 'target_ns' */
-    int pid_userns;     /* FD referring to user NS of PID in command line */
-    char path[PATH_MAX];
-
     if (argc != 3) {
         fprintf(stderr, "Usage: %s PID ns-file\n", argv[0]);
         fprintf(stderr, "\t'ns-file' is a /proc/PID/ns/xxxx file\n");
         exit(EXIT_FAILURE);
     }
 
-    pid_str = argv[1];
-    pid = atoi(pid_str);
+    char *pid_str = argv[1];
+    pid_t pid = atoi(pid_str);
 
     /* Obtain a file descriptor that refers to the target user namespace */
 
-    target_ns = open(argv[2], O_RDONLY);
+    int target_ns = open(argv[2], O_RDONLY);
     if (target_ns == -1)
         errExit("open-ns-file");
 
@@ -247,6 +235,7 @@ main(int argc, char *argv[])
        which is 'target_ns' itself if 'target_ns' refers to a user namespace,
        otherwise the user namespace that owns 'target_ns' */
 
+    int target_userns;  /* FD referring to user NS that owns 'target_ns' */
     if (ns_type(target_ns) == CLONE_NEWUSER) {
         target_userns = target_ns;
     } else {
@@ -256,9 +245,10 @@ main(int argc, char *argv[])
 
     /* Obtain a file descriptor for the user namespace of the PID */
 
+    char path[PATH_MAX];
     snprintf(path, sizeof(path), "/proc/%s/ns/user", pid_str);
 
-    pid_userns = open(path, O_RDONLY);
+    int pid_userns = open(path, O_RDONLY);
     if (pid_userns == -1)
         errExit("open-PID");
 

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -26,25 +26,21 @@
 int
 main(int argc, char *argv[])
 {
-    char *reqLenStr;                    /* Requested length of sequence */
-    char seqNumStr[INT_LEN];            /* Start of granted sequence */
-    int cfd;
-    ssize_t numRead;
-
     if (argc < 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s server-host [sequence-len]\n", argv[0]);
 
-    cfd = inetConnect(argv[1], PORT_NUM_STR, SOCK_STREAM);
+    int cfd = inetConnect(argv[1], PORT_NUM_STR, SOCK_STREAM);
     if (cfd == -1)
         fatal("inetConnect() failed");
 
-    reqLenStr = (argc > 2) ? argv[2] : "1";
+    char *reqLenStr = (argc > 2) ? argv[2] : "1";
     if (write(cfd, reqLenStr, strlen(reqLenStr)) !=  strlen(reqLenStr))
         fatal("Partial/failed write (reqLenStr)");
     if (write(cfd, "\n", 1) != 1)
         fatal("Partial/failed write (newline)");
 
-    numRead = readLine(cfd, seqNumStr, INT_LEN);
+    char seqNumStr[INT_LEN];            /* Start of granted sequence */
+    ssize_t numRead = readLine(cfd, seqNumStr, INT_LEN);
     if (numRead == -1)
         errExit("readLine");
     if (numRead == 0)

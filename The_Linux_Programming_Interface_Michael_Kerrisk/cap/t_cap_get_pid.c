@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -25,9 +25,6 @@
 int
 main(int argc, char *argv[])
 {
-    cap_t caps;
-    char *str;
-
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <pid>\n", argv[0]);
         exit(EXIT_FAILURE);
@@ -35,11 +32,11 @@ main(int argc, char *argv[])
 
     /* Fetch and display process capabilities */
 
-    caps = cap_get_pid(atoi(argv[1]));
+    cap_t caps = cap_get_pid(atoi(argv[1]));
     if (caps == NULL)
         errExit("cap_get_pid");
 
-    str = cap_to_text(caps, NULL);
+    char *str = cap_to_text(caps, NULL);
     if (str == NULL)
         errExit("cap_to_text");
 

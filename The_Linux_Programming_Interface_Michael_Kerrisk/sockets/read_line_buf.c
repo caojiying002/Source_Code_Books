@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU Lesser General Public License as published   *
@@ -34,15 +34,12 @@ readLineBufInit(int fd, struct ReadLineBuf *rlbuf)
 ssize_t
 readLineBuf(struct ReadLineBuf *rlbuf, char *buffer, size_t n)
 {
-    size_t cnt;
-    char c;
-
     if (n <= 0 || buffer == NULL) {
         errno = EINVAL;
         return -1;
     }
 
-    cnt = 0;
+    size_t cnt = 0;
 
     /* Fetch characters from rlbuf->buf, up to the next new line. */
 
@@ -62,7 +59,7 @@ readLineBuf(struct ReadLineBuf *rlbuf, char *buffer, size_t n)
             rlbuf->next = 0;
         }
 
-        c = rlbuf->buf[rlbuf->next];
+        char c = rlbuf->buf[rlbuf->next];
         rlbuf->next++;
 
         if (cnt < n)

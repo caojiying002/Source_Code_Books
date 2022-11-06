@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -47,11 +47,10 @@ printShmDS(const struct shmid_ds *ds)
 int
 main(int argc, char *argv[])
 {
-    struct shmid_ds ds;
-
     if (argc != 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s shmid\n", argv[0]);
 
+    struct shmid_ds ds;
     if (shmctl(getInt(argv[1], 0, "shmid"), IPC_STAT, &ds) == -1)
         errExit("shmctl");
 

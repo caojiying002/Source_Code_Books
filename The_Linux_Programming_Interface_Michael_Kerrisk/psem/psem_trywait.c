@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -24,12 +24,10 @@
 int
 main(int argc, char *argv[])
 {
-    sem_t *sem;
-
     if (argc < 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s sem-name\n", argv[0]);
 
-    sem = sem_open(argv[1], 0);
+    sem_t *sem = sem_open(argv[1], 0);
     if (sem == SEM_FAILED)
         errExit("sem_open");
 

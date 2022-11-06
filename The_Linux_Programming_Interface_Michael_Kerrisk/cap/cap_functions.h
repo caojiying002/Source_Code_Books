@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU Lesser General Public License as published   *
@@ -18,6 +18,10 @@
 #ifndef CAP_FUNCTIONS_H             /* Prevent double inclusion */
 #define CAP_FUNCTIONS_H
 
+#include <stdio.h>
+#include <sys/capability.h>
+#include <stdbool.h>
+
 /* Change the 'setting' of the specified 'capability' in the capability set
    specified by 'flag'.
 
@@ -26,8 +30,11 @@
 
    Returns: 0 on success or -1 on error. */
 
-#include <sys/capability.h>
-
 int modifyCapSetting(cap_flag_t flag, int capability, int setting);
+
+/* Display a securebits mask in either short or long form, depending on
+   the value of 'verbose'. */
+
+void printSecbits(int secbits, bool verbose, FILE *fp);
 
 #endif

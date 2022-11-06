@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -59,11 +59,10 @@ usage(char *pname)
 int
 main(int argc, char *argv[])
 {
-    int flags, do_fork, opt;
-
-    flags = 0;
-    do_fork = 0;
-    while ((opt = getopt(argc, argv, "CfimnpTuU")) != -1) {
+    int flags = 0;
+    int do_fork = 0;
+    int opt;
+    while ((opt = getopt(argc, argv, "+CfimnpTuU")) != -1) {
         switch (opt) {
         case 'f': do_fork = 1;                  break;
         case 'C': flags |= CLONE_NEWCGROUP;     break;

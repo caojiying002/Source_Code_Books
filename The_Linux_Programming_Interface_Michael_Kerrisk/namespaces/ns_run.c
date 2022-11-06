@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -48,9 +48,6 @@ usage(char *pname)
 int
 main(int argc, char *argv[])
 {
-    int fd, opt, do_fork;
-    pid_t pid;
-
     /* Parse command-line options. The initial '+' character in
        the final getopt() argument prevents GNU-style permutation
        of command-line options. That's useful, since sometimes
@@ -58,7 +55,9 @@ main(int argc, char *argv[])
        has command-line options. We don't want getopt() to treat
        those as options to this program. */
 
-    do_fork = 0;
+    int do_fork = 0;
+    int opt;
+    int fd;
     while ((opt = getopt(argc, argv, "+fn:")) != -1) {
         switch (opt) {
 
@@ -94,7 +93,7 @@ main(int argc, char *argv[])
        does not affect the PID namespace membership of the caller. */
 
     if (do_fork) {
-        pid = fork();
+        pid_t pid = fork();
         if (pid == -1)
             errExit("fork");
 

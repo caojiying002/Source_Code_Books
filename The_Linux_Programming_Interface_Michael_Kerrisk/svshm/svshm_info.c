@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -25,9 +25,8 @@ int
 main(int argc, char *argv[])
 {
     struct shm_info info;
-    int s;
 
-    s = shmctl(0, SHM_INFO, (struct shmid_ds *) &info);
+    int s = shmctl(0, SHM_INFO, (struct shmid_ds *) &info);
     if (s == -1)
         errExit("shmctl");
 

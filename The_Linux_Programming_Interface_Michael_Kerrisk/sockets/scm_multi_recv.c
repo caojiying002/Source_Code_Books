@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -31,30 +31,22 @@
 int
 main(int argc, char *argv[])
 {
-    int data, lfd, sfd, opt, optval;
-    ssize_t NumReceived;
-    bool useDatagramSocket;
-    int optControlMsgSize;
-    struct msghdr msgh;
-    struct iovec iov;
-    char *controlMsg;           /* Ancillary data (control message) */
-    size_t controlMsgSize;      /* Size of ancillary data */
-
     /* Allocate a buffer of suitable size to hold the ancillary data.
        This buffer is in reality treated as a 'struct cmsghdr',
        and so needs to be suitably aligned: malloc() provides a block
        with suitable alignment. */
 
-    controlMsgSize = CMSG_SPACE(sizeof(int[MAX_FDS])) +
-                     CMSG_SPACE(sizeof(struct ucred));
-    controlMsg = malloc(controlMsgSize);
+    size_t controlMsgSize = CMSG_SPACE(sizeof(int[MAX_FDS])) +
+                            CMSG_SPACE(sizeof(struct ucred));
+    char *controlMsg = malloc(controlMsgSize);
     if (controlMsg == NULL)
         errExit("malloc");
 
     /* Parse command-line options */
 
-    useDatagramSocket = false;
-    optControlMsgSize = -1;
+    bool useDatagramSocket = false;
+    int optControlMsgSize = -1;
+    int opt;
 
     while ((opt = getopt(argc, argv, "dn:")) != -1) {
         switch (opt) {
@@ -81,13 +73,14 @@ main(int argc, char *argv[])
     if (remove(SOCK_PATH) == -1 && errno != ENOENT)
         errExit("remove-%s", SOCK_PATH);
 
+    int sfd;
     if (useDatagramSocket) {
         sfd = unixBind(SOCK_PATH, SOCK_DGRAM);
         if (sfd == -1)
             errExit("unixBind");
 
     } else {
-        lfd = unixBind(SOCK_PATH, SOCK_STREAM);
+        int lfd = unixBind(SOCK_PATH, SOCK_STREAM);
         if (lfd == -1)
             errExit("unixBind");
 
@@ -102,7 +95,7 @@ main(int argc, char *argv[])
     /* We must set the SO_PASSCRED socket option in order to receive
        credentials */
 
-    optval = 1;
+    int optval = 1;
     if (setsockopt(sfd, SOL_SOCKET, SO_PASSCRED, &optval, sizeof(optval)) == -1)
         errExit("setsockopt");
 
@@ -110,16 +103,20 @@ main(int argc, char *argv[])
        kernel will place the address of the peer socket. However, we don't
        need the address of the peer, so we set this field to NULL. */
 
+    struct msghdr msgh;
     msgh.msg_name = NULL;
     msgh.msg_namelen = 0;
 
     /* Set fields of 'msgh' to point to a buffer used to receive
        the (real) data read by recvmsg() */
 
+    struct iovec iov;
+    int data;
+
     msgh.msg_iov = &iov;
     msgh.msg_iovlen = 1;
     iov.iov_base = &data;
-    iov.iov_len = sizeof(int);
+    iov.iov_len = sizeof(data);
 
     /* Set 'msgh' fields to describe the ancillary data buffer.
 
@@ -135,13 +132,13 @@ main(int argc, char *argv[])
 
     /* Receive real plus ancillary data */
 
-    NumReceived = recvmsg(sfd, &msgh, 0);
-    if (NumReceived == -1)
+    ssize_t nr = recvmsg(sfd, &msgh, 0);
+    if (nr == -1)
         errExit("recvmsg");
 
-    printf("recvmsg() returned %ld\n", (long) NumReceived);
+    printf("recvmsg() returned %zd\n", nr);
 
-    if (NumReceived > 0)
+    if (nr > 0)
         printf("Received data = %d\n", data);
 
     if (optControlMsgSize != -1) {
@@ -190,14 +187,16 @@ main(int argc, char *argv[])
             int fdCnt = (cmsgp->cmsg_len - CMSG_LEN(0)) / sizeof(int);
             printf("received %d file descriptors\n", fdCnt);
 
-            /* Set 'fdList' to point to the first descriptor in the
-               control message data */
+            /* Allocate an array to hold the received file descriptors,
+               and copy file descriptors from cmsg into array */
 
             int *fdList;
-            fdList = calloc(fdCnt, sizeof(int));
+            size_t fdAllocSize = sizeof(int) * fdCnt;
+            fdList = malloc(fdAllocSize);
             if (fdList == NULL)
                 errExit("calloc");
-            memcpy(fdList, CMSG_DATA(cmsgp), fdCnt * sizeof(int));
+
+            memcpy(fdList, CMSG_DATA(cmsgp), fdAllocSize);
 
             /* For each of the received file descriptors, display the file
                descriptor number and read and display the file content */

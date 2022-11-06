@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -30,6 +30,7 @@
 #define _GNU_SOURCE     /* Get strsignal() declaration from <string.h> */
 #include <string.h>
 #include <signal.h>
+#include <stdbool.h>
 #include "tlpi_hdr.h"
 
 static void
@@ -43,11 +44,6 @@ sigfpeCatcher(int sig)
 int
 main(int argc, char *argv[])
 {
-    int x, y;
-    sigset_t blockSet, prevMask;
-    Boolean blocking;
-    struct sigaction sa;
-
     /* If no command-line arguments specified, catch SIGFPE, else ignore it */
 
     if (argc > 1 && strchr(argv[1], 'i') != NULL) {
@@ -55,6 +51,8 @@ main(int argc, char *argv[])
         if (signal(SIGFPE, SIG_IGN) == SIG_ERR)     errExit("signal");
     } else {
         printf("Catching SIGFPE\n");
+
+        struct sigaction sa;
         sigemptyset(&sa.sa_mask);
         sa.sa_flags = SA_RESTART;
         sa.sa_handler = sigfpeCatcher;
@@ -62,9 +60,12 @@ main(int argc, char *argv[])
             errExit("sigaction");
     }
 
-    blocking = argc > 1 && strchr(argv[1], 'b') != NULL;
+    bool blocking = argc > 1 && strchr(argv[1], 'b') != NULL;
+    sigset_t prevMask;
     if (blocking) {
         printf("Blocking SIGFPE\n");
+
+        sigset_t blockSet;
         sigemptyset(&blockSet);
         sigaddset(&blockSet, SIGFPE);
         if (sigprocmask(SIG_BLOCK, &blockSet, &prevMask) == -1)
@@ -72,6 +73,7 @@ main(int argc, char *argv[])
     }
 
     printf("About to generate SIGFPE\n");
+    int x, y;
     y = 0;
     x = 1 / y;
     y = x;      /* Avoid complaints from "gcc -Wunused-but-set-variable" */

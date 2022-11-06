@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -30,8 +30,6 @@
 int
 main(int argc, char *argv[])
 {
-    int fd;
-
     if (argc < 2) {
         fprintf(stderr, "Usage: %s /proc/PID/ns/FILE\n", argv[0]);
         exit(EXIT_FAILURE);
@@ -40,7 +38,7 @@ main(int argc, char *argv[])
     display_creds_and_caps("Initial:\n");
     printf("\n");
 
-    fd = open(argv[1], O_RDONLY); /* Get descriptor for namespace */
+    int fd = open(argv[1], O_RDONLY); /* Get descriptor for namespace */
     if (fd == -1)
         errExit("open");
 

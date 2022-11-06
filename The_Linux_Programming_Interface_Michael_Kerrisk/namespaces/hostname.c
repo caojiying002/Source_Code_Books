@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -29,14 +29,14 @@
 int
 main(int argc, char *argv[])
 {
-    char buf[BUF_SIZE];
-
     if (argc > 1) {
         if (sethostname(argv[1], strlen(argv[1])) == -1) {
             perror("sethostname");
             exit(EXIT_FAILURE);
         }
     } else {
+        char buf[BUF_SIZE];
+
         if (gethostname(buf, BUF_SIZE) == -1) {
             perror("gethostname");
             exit(EXIT_FAILURE);

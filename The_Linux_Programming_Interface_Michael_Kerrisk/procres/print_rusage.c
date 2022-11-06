@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU Lesser General Public License as published   *
@@ -22,9 +22,7 @@
 void
 printRusage(const char *leader, const struct rusage *ru)
 {
-    const char *ldr;
-
-    ldr = (leader == NULL) ? "" : leader;
+    const char *ldr = (leader == NULL) ? "" : leader;
 
     printf("%sCPU time (secs):         user=%.3f; system=%.3f\n", ldr,
             ru->ru_utime.tv_sec + ru->ru_utime.tv_usec / 1000000.0,

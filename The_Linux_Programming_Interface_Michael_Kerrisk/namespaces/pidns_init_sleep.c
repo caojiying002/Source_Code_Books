@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -59,17 +59,14 @@ childFunc(void *arg)
 int
 main(int argc, char *argv[])
 {
-    pid_t child_pid;
-    char *stack;
-
-    stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
-                 MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
+    char *stack = mmap(NULL, STACK_SIZE, PROT_READ | PROT_WRITE,
+                       MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
     if (stack == MAP_FAILED)
         errExit("mmap");
 
-    child_pid = clone(childFunc,
-                      stack + STACK_SIZE,   /* Assume stack grows downward */
-                      CLONE_NEWPID | SIGCHLD, argv[1]);
+    pid_t child_pid = clone(childFunc,
+                        stack + STACK_SIZE,   /* Assume stack grows downward */
+                        CLONE_NEWPID | SIGCHLD, argv[1]);
 
     if (child_pid == -1)
         errExit("clone");

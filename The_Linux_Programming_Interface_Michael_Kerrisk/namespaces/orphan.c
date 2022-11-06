@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -32,11 +32,9 @@
 int
 main(int argc, char *argv[])
 {
-    pid_t pid, ppidOrig;
+    pid_t ppidOrig = getpid();
 
-    ppidOrig = getpid();
-
-    pid = fork();
+    pid_t pid = fork();
     if (pid == -1) {
         perror("fork");
         exit(EXIT_FAILURE);
@@ -62,5 +60,5 @@ main(int argc, char *argv[])
     sleep(1);
 
     printf("Child  (PID=%ld) terminating\n", (long) getpid());
-    _exit(EXIT_SUCCESS);
+    exit(EXIT_SUCCESS);
 }

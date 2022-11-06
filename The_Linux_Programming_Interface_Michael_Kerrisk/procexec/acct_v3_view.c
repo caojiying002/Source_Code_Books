@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -77,18 +77,10 @@ comptToLL(comp_t ct)
 int
 main(int argc, char *argv[])
 {
-    int acctFile;
-    struct acct_v3 ac;
-    ssize_t numRead;
-    char *s;
-    char timeBuf[TIME_BUF_SIZE];
-    struct tm *loc;
-    time_t t;
-
     if (argc != 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s file\n", argv[0]);
 
-    acctFile = open(argv[1], O_RDONLY);
+    int acctFile = open(argv[1], O_RDONLY);
     if (acctFile == -1)
         errExit("open");
 
@@ -97,6 +89,8 @@ main(int argc, char *argv[])
     printf("                       status                             "
            "                          time    time\n");
 
+    ssize_t numRead;
+    struct acct_v3 ac;
     while ((numRead = read(acctFile, &ac, sizeof(struct acct_v3))) > 0) {
         if (numRead != sizeof(struct acct_v3))
             fatal("partial read");
@@ -113,17 +107,19 @@ main(int argc, char *argv[])
 
         printf(" %5ld %5ld  ", (long) ac.ac_pid, (long) ac.ac_ppid);
 
+        char *s;
         s = userNameFromId(ac.ac_uid);
         printf("%-8.8s ", (s == NULL) ? "???" : s);
 
         s = groupNameFromId(ac.ac_gid);
         printf("%-8.8s ", (s == NULL) ? "???" : s);
 
-        t = ac.ac_btime;
-        loc = localtime(&t);
+        time_t t = ac.ac_btime;
+        struct tm *loc = localtime(&t);
         if (loc == NULL) {
             printf("???Unknown time???  ");
         } else {
+            char timeBuf[TIME_BUF_SIZE];
             strftime(timeBuf, TIME_BUF_SIZE, "%Y-%m-%d %T ", loc);
             printf("%s ", timeBuf);
         }

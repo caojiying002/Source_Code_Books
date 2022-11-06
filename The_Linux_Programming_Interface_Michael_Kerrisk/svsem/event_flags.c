@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU Lesser General Public License as published   *
@@ -69,10 +69,9 @@ setEventFlag(int semId, int semNum)
 int
 getFlagState(int semId, int semNum, Boolean *isSet)
 {
-    int sem_val;
     union semun dummy;
 
-    sem_val = semctl(semId, semNum, GETVAL, dummy);
+    int sem_val = semctl(semId, semNum, GETVAL, dummy);
     if (sem_val == -1)
         return -1;
 

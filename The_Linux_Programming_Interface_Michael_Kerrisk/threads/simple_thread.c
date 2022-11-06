@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -20,7 +20,7 @@
 static void *
 threadFunc(void *arg)
 {
-    char *s = (char *) arg;
+    char *s = arg;
 
     printf("%s", s);
 

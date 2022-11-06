@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -25,11 +25,10 @@
 int
 main(int argc, char *argv[])
 {
-    struct statfs sfs;
-
     if (argc != 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s path\n", argv[0]);
 
+    struct statfs sfs;
     if (statfs(argv[1], &sfs) == -1)
         errExit("statfs");
 

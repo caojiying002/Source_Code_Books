@@ -1,6 +1,6 @@
 include ../Makefile.inc
 
-GEN_EXE = orphan 
+GEN_EXE = make_orphans orphan 
 
 LINUX_EXE = \
 	    cred_launcher \

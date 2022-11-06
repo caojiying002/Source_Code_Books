@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,7 +8,7 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
-/* Listing 39-1 */
+/* Supplementary program for Chapter 39 */
 
 /* demo_file_caps.c
 
@@ -38,17 +38,13 @@
 int
 main(int argc, char *argv[])
 {
-    cap_t caps;
-    int fd;
-    char *str;
-
     /* Fetch and display process capabilities */
 
-    caps = cap_get_proc();
+    cap_t caps = cap_get_proc();
     if (caps == NULL)
         errExit("cap_get_proc");
 
-    str = cap_to_text(caps, NULL);
+    char *str = cap_to_text(caps, NULL);
     if (str == NULL)
         errExit("cap_to_text");
 
@@ -60,7 +56,7 @@ main(int argc, char *argv[])
     /* If an argument was supplied, try to open that file */
 
     if (argc > 1) {
-        fd = open(argv[1], O_RDONLY);
+        int fd = open(argv[1], O_RDONLY);
         if (fd >= 0)
             printf("Successfully opened %s\n", argv[1]);
         else

@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -111,7 +111,7 @@ install_filter(void)
     };
 
     struct sock_fprog prog = {
-        .len = (unsigned short) (sizeof(filter) / sizeof(filter[0])),
+        .len = sizeof(filter) / sizeof(filter[0]),
         .filter = filter,
     };
 
@@ -126,10 +126,8 @@ install_filter(void)
 static void
 seek_test(int fd, off_t offset)
 {
-    off_t ret;
-
     printf("Seek to byte %lld: ", (long long) offset);
-    ret = lseek(fd, offset, SEEK_SET);
+    off_t ret = lseek(fd, offset, SEEK_SET);
     if (ret == 0)
         printf("succeeded\n");
     else
@@ -137,16 +135,14 @@ seek_test(int fd, off_t offset)
 }
 
 int
-main(int argc, char **argv)
+main(int argc, char *argv[])
 {
-    int fd;
-
     if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0))
         errExit("prctl");
 
     install_filter();
 
-    fd = open("/dev/zero", O_RDWR);
+    int fd = open("/dev/zero", O_RDWR);
     if (fd == -1)
         errExit("open");
 

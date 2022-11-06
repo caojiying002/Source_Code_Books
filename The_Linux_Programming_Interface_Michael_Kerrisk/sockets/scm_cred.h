@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -18,6 +18,7 @@
                                    <sys/socket.h> */
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <stdbool.h>
 #include "unix_sockets.h"       /* Declares our socket functions */
 #include "tlpi_hdr.h"
 

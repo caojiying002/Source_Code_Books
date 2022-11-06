@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -21,21 +21,18 @@
 int
 main(int argc, char *argv[])
 {
-    struct passwd pwd;
-    struct passwd *result;
-    char *buf;
-    size_t bufSize;
-    int s;
-
     if (argc != 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s username\n", argv[0]);
 
-    bufSize = sysconf(_SC_GETPW_R_SIZE_MAX);
-    buf = malloc(bufSize);
+    size_t bufSize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    char *buf = malloc(bufSize);
     if (buf == NULL)
         errExit("malloc %d", bufSize);
 
-    s = getpwnam_r(argv[1], &pwd, buf, bufSize, &result);
+    struct passwd *result;
+    struct passwd pwd;
+
+    int s = getpwnam_r(argv[1], &pwd, buf, bufSize, &result);
     if (s != 0)
         errExitEN(s, "getpwnam_r");
 

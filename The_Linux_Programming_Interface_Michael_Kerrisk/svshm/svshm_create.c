@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -41,17 +41,13 @@ usageError(const char *progName, const char *msg)
 int
 main(int argc, char *argv[])
 {
-    int numKeyFlags;            /* Counts -f, -k, and -p options */
-    int flags, shmid, segSize;
-    unsigned int perms;
+    /* Parse command-line options and arguments */
+
+    int numKeyFlags = 0;        /* Counts -f, -k, and -p options */
+    int flags = 0;
     long lkey;
     key_t key;
     int opt;                    /* Option character from getopt() */
-
-    /* Parse command-line options and arguments */
-
-    numKeyFlags = 0;
-    flags = 0;
 
     while ((opt = getopt(argc, argv, "cf:k:px")) != -1) {
         switch (opt) {
@@ -94,15 +90,15 @@ main(int argc, char *argv[])
     if (optind >= argc)
         usageError(argv[0], "Size of segment must be specified\n");
 
-    segSize = getLong(argv[optind], GN_ANY_BASE, "seg-size");
+    int segSize = getLong(argv[optind], GN_ANY_BASE, "seg-size");
 
-    perms = (argc <= optind + 1) ? (S_IRUSR | S_IWUSR) :
-                getInt(argv[optind + 1], GN_BASE_8, "octal-perms");
+    unsigned int perms = (argc <= optind + 1) ? (S_IRUSR | S_IWUSR) :
+                         getInt(argv[optind + 1], GN_BASE_8, "octal-perms");
 
-    shmid = shmget(key, segSize, flags | perms);
+    int shmid = shmget(key, segSize, flags | perms);
     if (shmid == -1)
         errExit("shmget");
 
-    printf("%d\n", shmid);      /* On success, display shared mem. id */
+    printf("%d\n", shmid);      /* On success, display shared memory ID */
     exit(EXIT_SUCCESS);
 }

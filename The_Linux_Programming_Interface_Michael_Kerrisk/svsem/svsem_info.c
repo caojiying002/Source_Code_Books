@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -27,11 +27,10 @@ main(int argc, char *argv[])
 {
     struct seminfo info;
     union semun arg;
-    int s;
 
     arg.__buf = &info;
 
-    s = semctl(0, 0, SEM_INFO, arg);
+    int s = semctl(0, 0, SEM_INFO, arg);
     if (s == -1)
         errExit("semctl");
 

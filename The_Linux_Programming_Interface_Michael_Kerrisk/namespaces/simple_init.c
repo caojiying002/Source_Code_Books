@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -68,7 +68,6 @@ child_handler(int sig)
 static char **
 expand_words(char *cmd)
 {
-    char **arg_vec;
     wordexp_t pwordexp;
 
     int s = wordexp(cmd, &pwordexp, 0);
@@ -80,7 +79,7 @@ expand_words(char *cmd)
         return NULL;
     }
 
-    arg_vec = calloc(pwordexp.we_wordc + 1, sizeof(char *));
+    char **arg_vec = calloc(pwordexp.we_wordc + 1, sizeof(char *));
     if (arg_vec == NULL)
         errExit("calloc");
 
@@ -105,14 +104,8 @@ usage(char *pname)
 int
 main(int argc, char *argv[])
 {
-    struct sigaction sa;
-#define CMD_SIZE 10000
-    char cmd[CMD_SIZE];
-    pid_t pid;
+    char *proc_path = NULL;
     int opt;
-    char *proc_path;
-
-    proc_path = NULL;
     while ((opt = getopt(argc, argv, "p:v")) != -1) {
         switch (opt) {
         case 'p': proc_path = optarg;   break;
@@ -121,6 +114,7 @@ main(int argc, char *argv[])
         }
     }
 
+    struct sigaction sa;
     sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
     sigemptyset(&sa.sa_mask);
     sa.sa_handler = child_handler;
@@ -192,6 +186,9 @@ main(int argc, char *argv[])
 
         /* Read a shell command; exit on end of file */
 
+#define CMD_SIZE 10000
+        char cmd[CMD_SIZE];
+
         printf("init$ ");
         if (fgets(cmd, CMD_SIZE, stdin) == NULL) {
             if (verbose)
@@ -206,7 +203,7 @@ main(int argc, char *argv[])
         if (strlen(cmd) == 0)
             continue;           /* Ignore empty commands */
 
-        pid = fork();           /* Create child process */
+        pid_t pid = fork();             /* Create child process */
         if (pid == -1) {
             perror("fork");
             break;

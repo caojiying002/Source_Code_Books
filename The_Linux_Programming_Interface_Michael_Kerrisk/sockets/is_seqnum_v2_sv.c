@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -27,31 +27,24 @@
 int
 main(int argc, char *argv[])
 {
-    uint32_t seqNum;
-    char reqLenStr[INT_LEN];            /* Length of requested sequence */
-    char seqNumStr[INT_LEN];            /* Start of granted sequence */
-    struct sockaddr *claddr;
-    int lfd, cfd, reqLen;
-    socklen_t addrlen, alen;
-    char addrStr[IS_ADDR_STR_LEN];
-
     if (argc > 1 && strcmp(argv[1], "--help") == 0)
         usageErr("%s [init-seq-num]\n", argv[0]);
 
-    seqNum = (argc > 1) ? getInt(argv[1], 0, "init-seq-num") : 0;
+    uint32_t seqNum = (argc > 1) ? getInt(argv[1], 0, "init-seq-num") : 0;
 
     /* Ignore the SIGPIPE signal, so that we find out about broken connection
        errors via a failure from write(). */
 
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)    errExit("signal");
 
-    lfd = inetListen(PORT_NUM_STR, 5, &addrlen);
+    socklen_t addrlen;
+    int lfd = inetListen(PORT_NUM_STR, 5, &addrlen);
     if (lfd == -1)
         fatal("inetListen() failed");
 
     /* Allocate a buffer large enough to hold the client's socket address */
 
-    claddr = malloc(addrlen);
+    struct sockaddr *claddr = malloc(addrlen);
     if (claddr == NULL)
         errExit("malloc");
 
@@ -59,29 +52,32 @@ main(int argc, char *argv[])
 
         /* Accept a client connection, obtaining client's address */
 
-        alen = addrlen;
-        cfd = accept(lfd, (struct sockaddr *) claddr, &alen);
+        socklen_t alen = addrlen;
+        int cfd = accept(lfd, (struct sockaddr *) claddr, &alen);
         if (cfd == -1) {
             errMsg("accept");
             continue;
         }
 
+        char addrStr[IS_ADDR_STR_LEN];
         printf("Connection from %s\n", inetAddressStr(claddr, alen,
                         addrStr, IS_ADDR_STR_LEN));
 
         /* Read client request, send sequence number back */
 
+        char reqLenStr[INT_LEN];        /* Length of requested sequence */
         if (readLine(cfd, reqLenStr, INT_LEN) <= 0) {
             close(cfd);
             continue;                   /* Failed read; skip request */
         }
 
-        reqLen = atoi(reqLenStr);
+        int reqLen = atoi(reqLenStr);
         if (reqLen <= 0) {              /* Watch for misbehaving clients */
             close(cfd);
             continue;                   /* Bad request; skip it */
         }
 
+        char seqNumStr[INT_LEN];        /* Start of granted sequence */
         snprintf(seqNumStr, INT_LEN, "%d\n", seqNum);
         if (write(cfd, seqNumStr, strlen(seqNumStr)) != strlen(seqNumStr))
             fprintf(stderr, "Error on write");

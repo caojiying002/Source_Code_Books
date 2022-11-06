@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -92,7 +92,7 @@ main(int argc, char *argv[])
         errExit("semctl");
     if (shmdt(shmp) == -1)
         errExit("shmdt");
-    if (shmctl(shmid, IPC_RMID, 0) == -1)
+    if (shmctl(shmid, IPC_RMID, NULL) == -1)
         errExit("shmctl");
 
     fprintf(stderr, "Sent %d bytes (%d xfrs)\n", bytes, xfrs);

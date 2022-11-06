@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -31,7 +31,6 @@ static int numBarriers;         /* Number of times the threads will
 static void *
 threadFunc(void *arg)
 {
-    int s, nsecs;
     long threadNum = (long) arg;
 
     printf("Thread %ld started\n", threadNum);
@@ -48,7 +47,7 @@ threadFunc(void *arg)
 
     for (int j = 0; j < numBarriers; j++) {
 
-        nsecs = random() % 5 + 1;       /* Sleep for 1 to 5 seconds */
+        int nsecs = random() % 5 + 1;   /* Sleep for 1 to 5 seconds */
         sleep(nsecs);
 
         /* Calling pthread_barrier_wait() causes each thread to block
@@ -57,7 +56,7 @@ threadFunc(void *arg)
 
         printf("Thread %ld about to wait on barrier %d "
                 "after sleeping %d seconds\n", threadNum, j, nsecs);
-        s = pthread_barrier_wait(&barrier);
+        int s = pthread_barrier_wait(&barrier);
 
         /* After the required number of threads have called
            pthread_barrier_wait(), all of the threads unblock, and
@@ -109,18 +108,15 @@ threadFunc(void *arg)
 int
 main(int argc, char *argv[])
 {
-    int s, numThreads;
-    pthread_t *tid;
-
     if (argc != 3 || strcmp(argv[1], "--help") == 0)
         usageErr("%s num-barriers num-threads\n", argv[0]);
 
     numBarriers = atoi(argv[1]);
-    numThreads = atoi(argv[2]);
+    int numThreads = atoi(argv[2]);
 
     /* Allocate array to hold thread IDs */
 
-    tid = calloc(sizeof(pthread_t), numThreads);
+    pthread_t *tid = calloc(sizeof(pthread_t), numThreads);
     if (tid == NULL)
         errExit("calloc");
 
@@ -128,7 +124,7 @@ main(int argc, char *argv[])
        number of threads that must call pthread_barrier_wait()
        before any thread will unblock from that call. */
 
-    s = pthread_barrier_init(&barrier, NULL, numThreads);
+    int s = pthread_barrier_init(&barrier, NULL, numThreads);
     if (s != 0)
         errExitEN(s, "pthread_barrier_init");
 

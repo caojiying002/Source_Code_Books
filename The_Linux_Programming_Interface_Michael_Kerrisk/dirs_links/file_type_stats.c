@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -59,19 +59,15 @@ printStats(const char *msg, int num, int numFiles)
 int
 main(int argc, char *argv[])
 {
-    int numFiles;       /* Total number of files */
-
     if (argc != 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s dir-path\n", argv[0]);
 
     /* Traverse directory tree counting files; don't follow symbolic links */
 
-    if (nftw(argv[1], &countFile, 20, FTW_PHYS) == -1) {
-        perror("nftw");
-        exit(EXIT_FAILURE);
-    }
+    if (nftw(argv[1], &countFile, 20, FTW_PHYS) == -1)
+        errExit("nftw");
 
-    numFiles = numReg + numDir + numSymLk + numSocket +
+    int numFiles = numReg + numDir + numSymLk + numSocket +
                 numFifo + numChar + numBlock + numNonstatable;
 
     if (numFiles == 0) {

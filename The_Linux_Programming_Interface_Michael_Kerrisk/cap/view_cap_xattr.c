@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -25,13 +25,11 @@
 int
 main(int argc, char *argv[])
 {
-    struct vfs_ns_cap_data cap_data;
-    ssize_t valueLen;
-
     if (argc != 2 || strcmp(argv[1], "--help") == 0)
         usageErr("%s <file>\n", argv[0]);
 
-    valueLen = getxattr(argv[1], "security.capability",
+    struct vfs_ns_cap_data cap_data;
+    ssize_t valueLen = getxattr(argv[1], "security.capability",
                         (char *) &cap_data, sizeof(cap_data));
     if (valueLen == -1) {
         if (errno == ENODATA)
@@ -53,7 +51,7 @@ main(int argc, char *argv[])
     /* The size of the returned attribute value depends on the version of
        the 'security.capability' extended attribute */
 
-    printf("Length of returned value = %ld\n", (long) valueLen);
+    printf("Length of returned value = %zd\n", valueLen);
 
     /* Display file capabilities */
 

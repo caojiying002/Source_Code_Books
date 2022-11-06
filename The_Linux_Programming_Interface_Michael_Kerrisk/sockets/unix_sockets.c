@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU Lesser General Public License as published   *
@@ -46,19 +46,18 @@ unixBuildAddress(const char *path, struct sockaddr_un *addr)
 int
 unixConnect(const char *path, int type)
 {
-    int sd, savedErrno;
     struct sockaddr_un addr;
 
     if (unixBuildAddress(path, &addr) == -1)
         return -1;
 
-    sd = socket(AF_UNIX, type, 0);
+    int sd = socket(AF_UNIX, type, 0);
     if (sd == -1)
         return -1;
 
     if (connect(sd, (struct sockaddr *) &addr,
                 sizeof(struct sockaddr_un)) == -1) {
-        savedErrno = errno;
+        int savedErrno = errno;
         close(sd);                      /* Might change 'errno' */
         errno = savedErrno;
         return -1;
@@ -73,18 +72,17 @@ unixConnect(const char *path, int type)
 int
 unixBind(const char *path, int type)
 {
-    int sd, savedErrno;
     struct sockaddr_un addr;
 
     if (unixBuildAddress(path, &addr) == -1)
         return -1;
 
-    sd = socket(AF_UNIX, type, 0);
+    int sd = socket(AF_UNIX, type, 0);
     if (sd == -1)
         return -1;
 
     if (bind(sd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un)) == -1) {
-        savedErrno = errno;
+        int savedErrno = errno;
         close(sd);                      /* Might change 'errno' */
         errno = savedErrno;
         return -1;

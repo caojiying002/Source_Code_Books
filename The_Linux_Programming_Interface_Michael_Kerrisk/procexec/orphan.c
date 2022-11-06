@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -8,7 +8,7 @@
 * the file COPYING.gpl-v3 for details.                                    *
 \*************************************************************************/
 
-/* Supplementary program for Chapter Z */
+/* Solution for Exercise 26-1 */
 
 /* orphan.c
 
@@ -41,7 +41,7 @@ main(int argc, char *argv[])
             sleep(1);
         }
         printf("Child is orphaned (parent PID=%ld)\n", (long) ppid);
-        _exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS);
 
     default:            /* Parent */
         printf("Parent (PID=%ld) sleeping\n", (long) getpid());

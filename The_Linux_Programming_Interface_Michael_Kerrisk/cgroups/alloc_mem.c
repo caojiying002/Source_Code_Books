@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -26,17 +26,18 @@ static int sleepUsecs, numAllocs, numThreads;
 static void
 allocMem(int numAllocs, size_t blockSize, int sleepUsecs)
 {
-    size_t totalMem = 0;
-    char *p;
-
     if (numThreads > 1) {
 
         /* If we have created multiple threads, then pause until the user hits
            <enter>.  This gives the user a chance to split the threads across
            multiple (v1) memory cgroups that have different memory limits,
            making it possible to see how the kernel enforces the limit(s).
-           (Some light experimentation suggests that only the limit on the
-           thread group leader is enforced.) */
+           Some light experimentation suggests that only the limit on the
+           thread group leader is enforced. (Note that such an experiment
+           can't be performed in cgroups v2, where, from the perspective
+           of domain controllers such as the memory controller, all of the
+           threads in a multithreaded process are always part of the same
+           cgroup.) */
 
         char ch;
         printf("Hit ENTER when ready to start memory allocation "
@@ -45,8 +46,10 @@ allocMem(int numAllocs, size_t blockSize, int sleepUsecs)
         read(STDIN_FILENO, &ch, 1);
     }
 
+    size_t totalMem = 0;
+
     for (int j = 0; (numAllocs == -1) || (j < numAllocs); j++) {
-        p = malloc(blockSize);
+        char *p = malloc(blockSize);
         if (p == NULL)
             errExit("malloc %d", j);
 
@@ -88,8 +91,13 @@ threadFunc(void *arg)
 static void
 usageError(char *pname)
 {
-    fprintf(stderr, "Usage: %s block-size sleep-usecs num-allocs "
-            "[tflag...]\n\n", pname);
+    fprintf(stderr, "Usage: %s block-size num-allocs [sleep-usecs "
+            "[tflag...]]\n\n", pname);
+    fprintf(stderr, "Allocate 'num-allocs' blocks of memory of size "
+            "'block-size' bytes.\n\n");
+    fprintf(stderr, "The optional 'sleep-usecs' (default: 0) specifies a "
+            "number of microseconds to\n");
+    fprintf(stderr, "sleep between each allocation.\n\n");
     fprintf(stderr, "One additional thread is created for each 'tflag' "
             "argument\n\n");
     fprintf(stderr, "'tflag' is either '+' or '.'. At most one 'tflag' can be "
@@ -109,8 +117,8 @@ main(int argc, char *argv[])
         usageError(argv[0]);
 
     blockSize = strtol(argv[1], NULL, 0);
-    sleepUsecs = atoi(argv[2]);
-    numAllocs = atoi(argv[3]);
+    numAllocs = strtol(argv[2], NULL, 0);
+    sleepUsecs = (argc > 3) ? atoi(argv[3]) : 0;
 
     numThreads = argc - 4;
 

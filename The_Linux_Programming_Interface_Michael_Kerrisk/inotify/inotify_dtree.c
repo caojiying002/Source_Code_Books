@@ -1,5 +1,5 @@
 /*************************************************************************\
-*                  Copyright (C) Michael Kerrisk, 2020.                   *
+*                  Copyright (C) Michael Kerrisk, 2022.                   *
 *                                                                         *
 * This program is free software. You may use, modify, and redistribute it *
 * under the terms of the GNU General Public License as published by the   *
@@ -202,10 +202,9 @@ freeCache(void)
 static void
 checkCacheConsistency(void)
 {
-    int failures;
     struct stat sb;
+    int failures = 0;
 
-    failures = 0;
     for (int j = 0; j < cacheSize; j++) {
         if (wlCache[j].wd >= 0) {
             if (lstat(wlCache[j].path, &sb) == -1) {
@@ -214,11 +213,11 @@ checkCacheConsistency(void)
                         "[slot = %d; wd = %d] %s: %s\n",
                         j, wlCache[j].wd, wlCache[j].path, strerror(errno));
                 failures++;
+            }
         } else if (!S_ISDIR(sb.st_mode)) {
             logMessage(0, "checkCacheConsistency: %s is not a directory\n",
                                 wlCache[j].path);
-                    exit(EXIT_FAILURE);
-            }
+            exit(EXIT_FAILURE);
         }
     }
 
@@ -247,9 +246,7 @@ findWatch(int wd)
 static int
 findWatchChecked(int wd)
 {
-    int slot;
-
-    slot = findWatch(wd);
+    int slot = findWatch(wd);
 
     if (slot >= 0)
         return slot;
@@ -315,9 +312,7 @@ findEmptyCacheSlot(void)
 static int
 addWatchToCache(int wd, const char *pathname)
 {
-    int slot;
-
-    slot = findEmptyCacheSlot();
+    int slot = findEmptyCacheSlot();
 
     wlCache[slot].wd = wd;
     strncpy(wlCache[slot].path, pathname, PATH_MAX);
@@ -351,9 +346,7 @@ pathnameInCache(const char *pathname)
 static void
 dumpCacheToLog(void)
 {
-    int cnt;
-
-    cnt = 0;
+    int cnt = 0;
 
     for (int j = 0; j < cacheSize; j++) {
         if (wlCache[j].wd >= 0) {
@@ -385,13 +378,12 @@ static struct stat *rootDirStat;
 static void
 copyRootDirPaths(char *argv[])
 {
-    struct stat sb;
-
     numRootDirs = 0;
 
     /* Count the number of root paths, and check that the paths are valid */
 
     for (char **p = argv; *p != NULL; p++) {
+        struct stat sb;
 
         /* Check that command-line arguments are directories */
 
@@ -424,13 +416,12 @@ copyRootDirPaths(char *argv[])
             errExit("strdup");
 
         /* If the same filesystem object appears more than once in the
-           command line, this will cause confusion if we later try to zap
-           an object from the set of root paths. So, reject such
-           duplicates now. Note that we can't just do simple string
-           comparisons of the arguments, since different pathname strings
-           may refer to the same filesystem object (e.g., "mydir" and
-           "./mydir"). So, we use stat() to compare i-node numbers and
-           containing device IDs. */
+           command line, this will cause confusion if we later try to zap an
+           object from the set of root paths. So, reject such duplicates now.
+           Note that we can't just do simple string comparisons of the
+           arguments, since different pathname strings may refer to the same
+           filesystem object (e.g., "mydir" and "./mydir"). So, we use stat()
+           to compare i-node numbers and containing device IDs. */
 
         if (lstat(argv[j], &rootDirStat[j]) == -1)
             errExit("lstat");
@@ -476,11 +467,9 @@ isRootDirPath(const char *path)
 static void
 zapRootDirPath(const char *path)
 {
-    char **p;
-
     printf("zapRootDirPath: %s\n", path);
 
-    p = findRootDirPath(path);
+    char **p = findRootDirPath(path);
     if (p == NULL) {
         fprintf(stderr, "zapRootDirPath(): path not found!\n");
         exit(EXIT_FAILURE);
@@ -512,26 +501,23 @@ static int
 traverseTree(const char *pathname, const struct stat *sb, int tflag,
              struct FTW *ftwbuf)
 {
-    int wd, slot, flags;
-
     if (! S_ISDIR(sb->st_mode))
         return 0;               /* Ignore nondirectory files */
 
     /* Create a watch for this directory */
 
-    flags = IN_CREATE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF;
+    int flags = IN_CREATE | IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF;
 
     if (isRootDirPath(pathname))
         flags |= IN_MOVE_SELF;
 
-    wd = inotify_add_watch(ifd, pathname, flags | IN_ONLYDIR);
+    int wd = inotify_add_watch(ifd, pathname, flags | IN_ONLYDIR);
     if (wd == -1) {
 
-        /* By the time we come to create a watch, the directory might
-           already have been deleted or renamed, in which case we'll get
-           an ENOENT error. In that case, we log the error, but
-           carry on execution. Other errors are unexpected, and if we
-           hit them, we give up. */
+        /* By the time we come to create a watch, the directory might already
+           have been deleted or renamed, in which case we'll get an ENOENT
+           error. In that case, we log the error, but carry on execution.
+           Other errors are unexpected, and if we hit them, we give up. */
 
         logMessage(VB_BASIC, "inotify_add_watch: %s: %s\n",
                 pathname, strerror(errno));
@@ -554,7 +540,7 @@ traverseTree(const char *pathname, const struct stat *sb, int tflag,
 
     /* Cache information about the watch */
 
-    slot = addWatchToCache(wd, pathname);
+    int slot = addWatchToCache(wd, pathname);
 
     /* Print the name of the current directory */
 
@@ -595,9 +581,7 @@ watchDir(int inotifyFd, const char *pathname)
 static void
 watchSubtree(int inotifyFd, char *path)
 {
-    int cnt;
-
-    cnt = watchDir(inotifyFd, path);
+    int cnt = watchDir(inotifyFd, path);
 
     logMessage(VB_BASIC, "    watchSubtree: %s: %d entries added\n",
             path, cnt);
@@ -605,9 +589,8 @@ watchSubtree(int inotifyFd, char *path)
 
 /***********************************************************************/
 
-/* The directory oldPathPrefix/oldName was renamed to
-   newPathPrefix/newName. Fix up cache entries for
-   oldPathPrefix/oldName and all of its subdirectories
+/* The directory oldPathPrefix/oldName was renamed to newPathPrefix/newName.
+   Fix up cache entries for oldPathPrefix/oldName and all of its subdirectories
    to reflect the change. */
 
 static void
@@ -615,13 +598,10 @@ rewriteCachedPaths(const char *oldPathPrefix, const char *oldName,
                    const char *newPathPrefix, const char *newName)
 {
     char fullPath[PATH_MAX], newPrefix[PATH_MAX];
-    char newPath[PATH_MAX];
-    size_t len;
-    int s;
 
     snprintf(fullPath, sizeof(fullPath), "%s/%s", oldPathPrefix, oldName);
     snprintf(newPrefix, sizeof(newPrefix), "%s/%s", newPathPrefix, newName);
-    len = strlen(fullPath);
+    size_t len = strlen(fullPath);
 
     logMessage(VB_BASIC, "Rename: %s ==> %s\n", fullPath, newPrefix);
 
@@ -629,7 +609,8 @@ rewriteCachedPaths(const char *oldPathPrefix, const char *oldName,
         if (strncmp(fullPath, wlCache[j].path, len) == 0 &&
                     (wlCache[j].path[len] == '/' ||
                      wlCache[j].path[len] == '\0')) {
-            s = snprintf(newPath, sizeof(newPath), "%s%s", newPrefix,
+            char newPath[PATH_MAX];
+            int s = snprintf(newPath, sizeof(newPath), "%s%s", newPrefix,
                     &wlCache[j].path[len]);
             if (s > sizeof(newPath))
                 logMessage(VB_BASIC, "Truncated pathname: %s\n", newPath);
@@ -649,22 +630,18 @@ rewriteCachedPaths(const char *oldPathPrefix, const char *oldName,
 static int
 zapSubtree(int inotifyFd, char *path)
 {
-    size_t len;
-    int cnt;
-    char *pn;
-
     logMessage(VB_NOISY, "Zapping subtree: %s\n", path);
 
-    len = strlen(path);
+    size_t len = strlen(path);
 
     /* The argument we receive might be a pointer to a pathname string
-       that is actually stored in the cache.  If we zap that pathname
-       part way through scanning the whole cache, then chaos results.
-       So, create a temporary copy. */
+       that is actually stored in the cache.  If we zap that pathname part way
+       through scanning the whole cache, then chaos results.  So, create a
+       temporary copy. */
 
-    pn = strdup(path);
+    char *pn = strdup(path);
 
-    cnt = 0;
+    int cnt = 0;
 
     for (int j = 0; j < cacheSize; j++) {
         if (wlCache[j].wd >= 0) {
@@ -710,9 +687,7 @@ zapSubtree(int inotifyFd, char *path)
 static int
 reinitialize(int oldInotifyFd)
 {
-    int inotifyFd;
     static int reinitCnt;
-    int cnt;
 
     if (oldInotifyFd >= 0) {
         close(oldInotifyFd);
@@ -726,7 +701,7 @@ reinitialize(int oldInotifyFd)
         reinitCnt = 0;
     }
 
-    inotifyFd = inotify_init();
+    int inotifyFd = inotify_init();
     if (inotifyFd == -1)
         errExit("inotify_init");
 
@@ -738,7 +713,7 @@ reinitialize(int oldInotifyFd)
         if (rootDirPaths[j] != NULL)
             watchSubtree(inotifyFd, rootDirPaths[j]);
 
-    cnt = 0;
+    int cnt = 0;
     for (int j = 0; j < cacheSize; j++)
         if (wlCache[j].wd >= 0)
             cnt++;
@@ -760,11 +735,9 @@ static size_t
 processNextInotifyEvent(int *inotifyFd, char *buf, int bufSize, int firstTry)
 {
     char fullPath[PATH_MAX + NAME_MAX];
-    struct inotify_event *ev;
-    size_t evLen;
     int evCacheSlot;
 
-    ev = (struct inotify_event *) buf;
+    struct inotify_event *ev = (struct inotify_event *) buf;
 
     displayInotifyEvent(ev);
 
@@ -790,7 +763,7 @@ processNextInotifyEvent(int *inotifyFd, char *buf, int bufSize, int firstTry)
         }
     }
 
-    evLen = sizeof(struct inotify_event) + ev->len;
+    size_t evLen = sizeof(struct inotify_event) + ev->len;
 
     if ((ev->mask & IN_ISDIR) &&
             (ev->mask & (IN_CREATE | IN_MOVED_TO))) {
@@ -811,27 +784,25 @@ processNextInotifyEvent(int *inotifyFd, char *buf, int bufSize, int firstTry)
            * On the one hand, the following steps might occur:
                1. The "child" directory is created.
                2. The "grandchild" directory is created
-               3. We receive an IN_CREATE event for the creation of the
-                  "child" and create a watch and a cache entry for it.
-               4. To handle the possibility that step 2 came before
-                  step 3, we recursively walk through the descendants of
-                  the "child" directory, adding any subdirectories to
-                  the cache.
+               3. We receive an IN_CREATE event for the creation of the "child"
+                  and create a watch and a cache entry for it.
+               4. To handle the possibility that step 2 came before step 3, we
+                  recursively walk through the descendants of the "child"
+                  directory, adding any subdirectories to the cache.
            * On the other hand, the following steps might occur:
                1. The "child" directory is created.
                3. We receive an IN_CREATE event for the creation of the
                   "child" and create a watch and a cache entry for it.
                3. The "grandchild" directory is created
-               4. During the recursive walk through the descendants of
-                  the "child" directory, we cache the "grandchild" and
-                  add a watch for it.
-               5. We receive the IN_CREATE event for the creation of
-                  the "grandchild". At this point, we should NOT create
-                  a cache entry and watch for the "grandchild" because
-                  they already exist. (Creating the watch for the
-                  second time is harmless, but adding a second cache
-                  for the grandchild would leave the cache in a confused
-                  state.) */
+               4. During the recursive walk through the descendants of the
+                  "child" directory, we cache the "grandchild" and add a watch
+                  for it.
+               5. We receive the IN_CREATE event for the creation of the
+                  "grandchild". At this point, we should NOT create a cache
+                  entry and watch for the "grandchild" because they already
+                  exist. (Creating the watch for the second time is harmless,
+                  but adding a second cache for the grandchild would leave the
+                  cache in a confused state.) */
 
         if (!pathnameInCache(fullPath))
             watchSubtree(*inotifyFd, fullPath);
@@ -854,84 +825,76 @@ processNextInotifyEvent(int *inotifyFd, char *buf, int bufSize, int firstTry)
                (IN_MOVED_FROM | IN_ISDIR)) {
 
         /* We have a "moved from" event. To know how to deal with it, we
-           need to determine whether there is a following "moved to"
-           event with a matching cookie value (i.e., an "intra-tree"
-           rename() where the source and destination are inside our
-           monitored trees).  If there is not, then we are dealing
-           with a rename() out of our monitored tree(s).
+           need to determine whether there is a following "moved to" event with
+           a matching cookie value (i.e., an "intra-tree" rename() where the
+           source and destination are inside our monitored trees).  If there is
+           not, then we are dealing with a rename() out of our monitored
+           tree(s).
 
-           We assume that if this is an "intra-tree" rename() event, then
-           the "moved to" event is the next event in the buffer returned
-           by the current read(). (If we are already at the last event in
-           this buffer, then we ask our caller to read a bit more, in
-           the hope of getting the following IN_MOVED_TO event in the
-           next read().)
+           We assume that if this is an "intra-tree" rename() event, then the
+           "moved to" event is the next event in the buffer returned by the
+           current read(). (If we are already at the last event in this buffer,
+           then we ask our caller to read a bit more, in the hope of getting
+           the following IN_MOVED_TO event in the next read().)
 
            In most cases, the assumption holds. However, where multiple
-           processes are manipulating the tree, we can can get event
-           sequences such as the following:
+           processes are manipulating the tree, we can can get event sequences
+           such as the following:
 
                  IN_MOVED_FROM (rename(x) by process A)
                          IN_MOVED_FROM (rename(y) by process B)
                          IN_MOVED_TO   (rename(y) by process B)
                  IN_MOVED_TO   (rename(x) by process A)
 
-           In principle, there may be arbitrarily complex variations on
-           the above theme. Our assumption that related IN_MOVED_FROM
-           and IN_MOVED_TO events are consecutive is broken by such
-           scenarios.
+           In principle, there may be arbitrarily complex variations on the
+           above theme. Our assumption that related IN_MOVED_FROM and
+           IN_MOVED_TO events are consecutive is broken by such scenarios.
 
-           We could try to resolve this issue by extending the window
-           we use to search for IN_MOVED_TO events beyond the next item
-           in the queue. But this must be done heuristically (e.g.,
-           limiting the window to N events or to events read within
-           X milliseconds), because sometimes we will have unmatched
-           IN_MOVED_FROM events that result from out-of-tree renames.
-           The heuristic approach is therefore unavoidably racy: there
-           is always a chance that we will fail to match up an
-           IN_MOVED_FROM+IN_MOVED_TO event pair.
+           We could try to resolve this issue by extending the window we use to
+           search for IN_MOVED_TO events beyond the next item in the queue. But
+           this must be done heuristically (e.g., limiting the window to N
+           events or to events read within X milliseconds), because sometimes
+           we will have unmatched IN_MOVED_FROM events that result from
+           out-of-tree renames.  The heuristic approach is therefore
+           unavoidably racy: there is always a chance that we will fail to
+           match up an IN_MOVED_FROM+IN_MOVED_TO event pair.
 
-           So, this program takes the simple approach of assuming
-           that an IN_MOVED_FROM+IN_MOVED_TO pair occupy consecutive
-           events in the buffer returned by read().
+           So, this program takes the simple approach of assuming that an
+           IN_MOVED_FROM+IN_MOVED_TO pair occupy consecutive events in the
+           buffer returned by read().
 
-           When that assumption is wrong (and we therefore fail
-           to recognize an intra-tree rename() event), then
-           the rename will be treated as separate "moved from" and
-           "moved to" events, with the result that some watch items
-           and cache entries are zapped and re-created. This causes
-           the watch descriptors in our cache to become inconsistent
-           with the watch descriptors in as yet unread events,
-           because the watches are re-created with different watch
-           descriptor numbers.
+           When that assumption is wrong (and we therefore fail to recognize
+           an intra-tree rename() event), then the rename will be treated
+           as separate "moved from" and "moved to" events, with the result that
+           some watch items and cache entries are zapped and re-created. This
+           causes the watch descriptors in our cache to become inconsistent
+           with the watch descriptors in as yet unread events, because the
+           watches are re-created with different watch descriptor numbers.
 
-           Once such an inconsistency occurs, then, at some later point,
-           we will do a lookup for a watch descriptor returned by
-           inotify, and find that it is not in our cache. When that
-           happens, we reinitialize our cache with a fresh set of watch
-           descriptors and re-create the inotify file descriptor, in
-           order to bring our cache back into consistency with the
-           filesystem. An alternative would be to cache the cookies of
-           the (recent) IN_MOVED_FROM events for which which we did not
-           find a matching IN_MOVED_TO event, and rebuild our watch
-           cache when we find an IN_MOVED_TO event whose cookie matches
-           one of the cached cookies. Yet another approach when we
-           detect an out-of-tree rename would be to reinitialize the
-           cache and create a new inotify file descriptor.
-           (TODO: consider the fact that for a rename event, there
-           won't be other events for the object between IN_MOVED_FROM
-           and IN_MOVED_TO.)
+           Once such an inconsistency occurs, then, at some later point, we
+           will do a lookup for a watch descriptor returned by inotify, and
+           find that it is not in our cache. When that happens, we reinitialize
+           our cache with a fresh set of watch descriptors and re-create the
+           inotify file descriptor, in order to bring our cache back into
+           consistency with the filesystem. An alternative would be to cache
+           the cookies of the (recent) IN_MOVED_FROM events for which which we
+           did not find a matching IN_MOVED_TO event, and rebuild our watch
+           cache when we find an IN_MOVED_TO event whose cookie matches one of
+           the cached cookies. Yet another approach when we detect an
+           out-of-tree rename would be to reinitialize the cache and create a
+           new inotify file descriptor.
+           (TODO: consider the fact that for a rename event, there won't be
+           other events for the object between IN_MOVED_FROM and IN_MOVED_TO.)
 
-           Rebuilding the watch cache is expensive if the monitored
-           tree is large. So, there is a trade-off between how much
-           effort we want to go to to avoid cache rebuilds versus
-           how much effort we want to devote to matching up
-           IN_MOVED_FROM+IN_MOVED_TO event pairs. At the one extreme
-           we would do no search ahead for IN_MOVED_TO, with the result
-           that every rename() potentially could trigger a cache
-           rebuild. Limiting the search window to just the following
-           event is a compromise that catches the vast majority of
-           intra-tree renames and triggers relatively few cache rebuilds.
+           Rebuilding the watch cache is expensive if the monitored tree is
+           large. So, there is a trade-off between how much effort we want to
+           go to to avoid cache rebuilds versus how much effort we want to
+           devote to matching up IN_MOVED_FROM+IN_MOVED_TO event pairs. At the
+           one extreme we would do no search ahead for IN_MOVED_TO, with the
+           result that every rename() potentially could trigger a cache
+           rebuild. Limiting the search window to just the following event is
+           a compromise that catches the vast majority of intra-tree renames
+           and triggers relatively few cache rebuilds.
          */
 
         struct inotify_event *nextEv;
@@ -944,9 +907,8 @@ processNextInotifyEvent(int *inotifyFd, char *buf, int bufSize, int firstTry)
 
             int nextEvCacheSlot;
 
-            /* We have a rename() event. We need to fix up the
-               cached pathnames for the corresponding directory
-               and all of its subdirectories. */
+            /* We have a rename() event. We need to fix up the cached pathnames
+             * for the corresponding directory and all of its subdirectories. */
 
             nextEvCacheSlot = findWatchChecked(nextEv->wd);
 
@@ -971,11 +933,10 @@ processNextInotifyEvent(int *inotifyFd, char *buf, int bufSize, int firstTry)
 
         } else if (((char *) nextEv < buf + bufSize) || !firstTry) {
 
-            /* We got a "moved from" event without an accompanying
-               "moved to" event. The directory has been moved
-               outside the tree we are monitoring. We need to
-               remove the watches and zap the cache entries for
-               the moved directory and all of its subdirectories. */
+            /* We got a "moved from" event without an accompanying "moved to"
+               event. The directory has been moved outside the tree we are
+               monitoring. We need to remove the watches and zap the cache
+               entries for the moved directory and all of its subdirectories. */
 
             logMessage(VB_NOISY, "MOVED_OUT: %p %p\n",
                     wlCache[evCacheSlot].path, ev->name);
@@ -1010,11 +971,10 @@ processNextInotifyEvent(int *inotifyFd, char *buf, int bufSize, int firstTry)
         logMessage(0, "Queue overflow (%d) (inotifyReadCnt = %d)\n",
                     overflowCnt, inotifyReadCnt);
 
-        /* When the queue overflows, some events are lost, at which
-           point we've lost any chance of keeping our cache consistent
-           with the state of the filesystem. So, discard this inotify
-           file descriptor and create a new one, and zap and rebuild
-           the cache. */
+        /* When the queue overflows, some events are lost, at which point
+           we've lost any chance of keeping our cache consistent with the
+           state of the filesystem. So, discard this inotify file descriptor
+           and create a new one, and zap and rebuild the cache. */
 
         *inotifyFd = reinitialize(*inotifyFd);
 
@@ -1025,9 +985,9 @@ processNextInotifyEvent(int *inotifyFd, char *buf, int bufSize, int firstTry)
     } else if (ev->mask & IN_UNMOUNT) {
 
         /* When a filesystem is unmounted, each of the watches on the
-           is dropped, and an unmount and an ignore event are generated.
-           There's nothing left for us to monitor, so we just zap the
-           corresponding cache entry. */
+           filesystem is dropped, and an unmount and an ignore event are
+           generated.  There's nothing left for us to monitor, so we just
+           zap the corresponding cache entry. */
 
         logMessage(0, "Filesystem unmounted: %s\n",
                 wlCache[evCacheSlot].path);
@@ -1038,13 +998,12 @@ processNextInotifyEvent(int *inotifyFd, char *buf, int bufSize, int firstTry)
     } else if (ev->mask & IN_MOVE_SELF &&
             isRootDirPath(wlCache[evCacheSlot].path)) {
 
-        /* If the root path moves to a new location in the same
-           filesystem, then all cached pathnames become invalid, and we
-           have no direct way of knowing the new name of the root path.
-           We could in theory find the new name by caching the i-node of
-           the root path on start-up and then trying to find a pathname
-           that corresponds to that i-node. Instead, we'll keep things
-           simple, and just cease monitoring it. */
+        /* If the root path moves to a new location in the same filesystem,
+           then all cached pathnames become invalid, and we have no direct way
+           of knowing the new name of the root path.  We could in theory find
+           the new name by caching the i-node of the root path on start-up and
+           then trying to find a pathname that corresponds to that i-node.
+           Instead, we'll keep things simple, and just cease monitoring it. */
 
         logMessage(0, "Root path moved: %s\n",
                     wlCache[evCacheSlot].path);
@@ -1088,26 +1047,22 @@ processInotifyEvents(int *inotifyFd)
 {
     char buf[INOTIFY_READ_BUF_LEN]
         __attribute__ ((aligned(__alignof__(struct inotify_event))));
-    ssize_t numRead, nr;
-    size_t cnt;
-    int evLen;
-    int firstTry;
-    struct sigaction sa;
 
     /* SIGALRM handler is designed simply to interrupt read() */
 
+    struct sigaction sa;
     sigemptyset(&sa.sa_mask);
     sa.sa_handler = alarmHandler;
     sa.sa_flags = 0;
     if (sigaction(SIGALRM, &sa, NULL) == -1)
         errExit("sigaction");
 
-    firstTry = 1;
+    int firstTry = 1;
 
     /* Read some events from inotify file descriptor */
 
-    cnt = (readBufferSize > 0) ? readBufferSize : INOTIFY_READ_BUF_LEN;
-    numRead = read(*inotifyFd, buf, cnt);
+    size_t cnt = (readBufferSize > 0) ? readBufferSize : INOTIFY_READ_BUF_LEN;
+    ssize_t numRead = read(*inotifyFd, buf, cnt);
     if (numRead == -1)
         errExit("read");
     if (numRead == 0) {
@@ -1124,7 +1079,7 @@ processInotifyEvents(int *inotifyFd)
     /* Process each event in the buffer returned by read() */
 
     for (char *evp = buf; evp < buf + numRead; ) {
-        evLen = processNextInotifyEvent(inotifyFd, evp,
+        int evLen = processNextInotifyEvent(inotifyFd, evp,
                                  buf + numRead - evp, firstTry);
 
         if (evLen > 0) {
@@ -1132,21 +1087,18 @@ processInotifyEvents(int *inotifyFd)
             firstTry = 1;
         } else {
 
-            /* We got here because an IN_MOVED_FROM event was found at
-               the end of a previously read buffer and that event may be
-               part of an "intra-tree" rename(), meaning that we should
-               check if there is a subsequent IN_MOVED_TO event with the
-               same cookie value. We left that event unprocessed and we
-               will now try to read some more events, delaying for a
-               short time, to give the associated IN_MOVED_IN event (if
-               there is one) a chance to arrive. However, we only want
-               to do this once: if the read() below fails to gather
-               further events, then when we reprocess the IN_MOVED_FROM
-               we should treat it as though this is an out-of-tree
-               rename(). Thus, we set 'firstTry' to 0 for the next
+            /* We got here because an IN_MOVED_FROM event was found at the end
+               of a previously read buffer and that event may be part of an
+               "intra-tree" rename(), meaning that we should check if there is
+               a subsequent IN_MOVED_TO event with the same cookie value. We
+               left that event unprocessed and we will now try to read some
+               more events, delaying for a short time, to give the associated
+               IN_MOVED_IN event (if there is one) a chance to arrive. However,
+               we only want to do this once: if the read() below fails to
+               gather further events, then when we reprocess the IN_MOVED_FROM
+               we should treat it as though this is an out-of-tree rename().
+               Thus, we set 'firstTry' to 0 for the next
                processNextInotifyEvent() call. */
-
-            int savedErrno;
 
             firstTry = 0;
 
@@ -1158,21 +1110,20 @@ processInotifyEvents(int *inotifyFd)
                 buf[j] = evp[j];
 
             /* Set a timeout for read(). Some rough testing suggests
-               that a 2-millisecond timeout is sufficient to ensure
-               that, in around 99.8% of cases, we get the IN_MOVED_TO
-               event (if there is one) that matched an IN_MOVED_FROM
-               event, even in a highly dynamic directory tree. This
-               number may, of course, warrant tuning on different
-               hardware and in environments with different filesystem
-               activity levels. */
+               that a 2-millisecond timeout is sufficient to ensure that, in
+               around 99.8% of cases, we get the IN_MOVED_TO event (if there
+               is one) that matched an IN_MOVED_FROM event, even in a highly
+               dynamic directory tree. This number may, of course, warrant
+               tuning on different hardware and in environments with different
+               filesystem activity levels. */
 
             ualarm(2000, 0);
 
-            nr = read(*inotifyFd, buf + numRead,
-                      INOTIFY_READ_BUF_LEN - numRead);
+            ssize_t nr = read(*inotifyFd, buf + numRead,
+                              INOTIFY_READ_BUF_LEN - numRead);
 
-            savedErrno = errno; /* In case ualarm() should change errno */
-            ualarm(0, 0);       /* Cancel alarm */
+            int savedErrno = errno;
+            ualarm(0, 0);               /* Cancel alarm */
             errno = savedErrno;
 
             if (nr == -1 && errno != EINTR)
@@ -1209,14 +1160,11 @@ static void
 executeCommand(int *inotifyFd)
 {
     const int MAX_LINE = 100;
-    ssize_t numRead;
     char line[MAX_LINE], arg[MAX_LINE];
-    char cmd;
-    int cnt, ns, failures;
-    struct stat sb;
+    int cnt, failures;
     FILE *fp;
 
-    numRead = read(STDIN_FILENO, line, MAX_LINE);
+    ssize_t numRead = read(STDIN_FILENO, line, MAX_LINE);
     if (numRead <= 0) {
         printf("bye!\n");
         exit(EXIT_FAILURE);
@@ -1227,7 +1175,8 @@ executeCommand(int *inotifyFd)
     if (strlen(line) == 0)
         return;
 
-    ns = sscanf(line, "%c %s\n", &cmd, arg);
+    char cmd;
+    int ns = sscanf(line, "%c %s\n", &cmd, arg);
 
     switch (cmd) {
 
@@ -1250,6 +1199,8 @@ executeCommand(int *inotifyFd)
         failures = 0;
         for (int j = 0; j < cacheSize; j++) {
             if (wlCache[j].wd >= 0) {
+                struct stat sb;
+
                 if (lstat(wlCache[j].path, &sb) == -1) {
                     if (cmd == 'c')
                         logMessage(VB_BASIC,
@@ -1389,10 +1340,6 @@ usageError(const char *pname)
 int
 main(int argc, char *argv[])
 {
-    fd_set rfds;
-    int opt;
-    int inotifyFd;
-
     /* Parse command-line options */
 
     verboseMask = 0;
@@ -1401,6 +1348,7 @@ main(int argc, char *argv[])
     stopFile = NULL;
     abortOnCacheProblem = 0;
 
+    int opt;
     while ((opt = getopt(argc, argv, "a:dxl:v:b:")) != -1) {
         switch (opt) {
 
@@ -1447,7 +1395,7 @@ main(int argc, char *argv[])
     /* Create an inotify instance and populate it with entries for
        directory named on command line */
 
-    inotifyFd = reinitialize(-1);
+    int inotifyFd = reinitialize(-1);
 
     /* Loop to handle inotify events and keyboard commands */
 
@@ -1455,6 +1403,7 @@ main(int argc, char *argv[])
     fflush(stdout);
 
     for (;;) {
+        fd_set rfds;
         FD_ZERO(&rfds);
         FD_SET(STDIN_FILENO, &rfds);
         FD_SET(inotifyFd, &rfds);
